@@ -61,7 +61,7 @@ class JackRTCCallService extends JackRTCData {
   Future<void> endCall() async {
     await RTCMediaService.callEnd();
     await RTCConnections.dispose();
-    SocketMediaController.endCallSocket(socketData);
+    SocketMediaService.endCallSocket(socketData);
   }
 
   void setAudio(bool status) {

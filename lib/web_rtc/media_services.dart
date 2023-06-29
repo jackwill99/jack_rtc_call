@@ -92,7 +92,7 @@ class RTCMediaService {
     localStream.value!.getVideoTracks().forEach((track) {
       track.enabled = status;
     });
-    SocketMediaController.videoMutedSocket(status, socketData);
+    SocketMediaService.videoMutedSocket(status, socketData);
   }
 
   static void switchCamera() {
@@ -256,6 +256,11 @@ class RTCMediaService {
     /// media call
     await setupMediaCall(videoOn: socketData.tempOffer["video"]);
 
+    SocketMediaService.videoMutedSocket(
+      socketData.tempOffer["video"],
+      socketData,
+    );
+
     // create SDP answer
     final answer = await RTCConnections.createAnswer(
         offerSDP: socketData.tempOffer['offer']["sdp"],
@@ -269,7 +274,7 @@ class RTCMediaService {
     isCallingMedia.value = true;
 
     //* call socket
-    await SocketMediaController.acceptCallSocket(answer, socketData);
+    await SocketMediaService.acceptCallSocket(answer, socketData);
 
     toRoute().then((value) async {
       if (value != null && value is bool && value == true) {

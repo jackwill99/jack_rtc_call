@@ -5,7 +5,7 @@ import 'package:jack_rtc_call/web_rtc/rtc.dart';
 import 'package:jack_rtc_call/web_rtc/media_services.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 
-class SocketServices with SocketDataChannelController, SocketMediaController {
+class SocketServices with SocketDataChannelService, SocketMediaService {
   SocketServices._();
 
   static void connectToServer({
@@ -100,8 +100,8 @@ class SocketServices with SocketDataChannelController, SocketMediaController {
       socketData.partnerHasSDP = data['partner']['hasSDP'];
     });
 
-    SocketDataChannelController.initializeDataChannel(socketData: socketData);
-    SocketMediaController.initializeMedia(socketData: socketData);
+    SocketDataChannelService.initializeDataChannel(socketData: socketData);
+    SocketMediaService.initializeMedia(socketData: socketData);
   }
 
   ///-----------------------------------------------------
@@ -127,11 +127,11 @@ class SocketServices with SocketDataChannelController, SocketMediaController {
 }
 
 @protected
-mixin SocketDataChannelController {
+mixin SocketDataChannelService {
   static void initializeDataChannel({required SocketData socketData}) {
     //! For Client 1 / DataChannel
     socketData.socket.on("exchangeSDPAnswerNotify", (data) async {
-      await SocketMediaController.socketSDPAnswer(
+      await SocketMediaService.socketSDPAnswer(
           data: data, socketData: socketData);
     });
 
@@ -177,7 +177,7 @@ mixin SocketDataChannelController {
 }
 
 @protected
-mixin SocketMediaController {
+mixin SocketMediaService {
   static void initializeMedia({required SocketData socketData}) {
     //! For Client 1 / Media Call
     socketData.socket.on("callAnswered", (data) async {
