@@ -187,7 +187,7 @@ mixin SocketMediaController {
 
     //! For Client 2 / MediaCall
     socketData.socket.on("newCall", (data) async {
-      debugPrint("----------------------new call----------------------");
+      debugPrint("----------------------new call-------$data---------------");
       socketData.tempOffer = data;
       await CallKitVOIP.inComingCall(
           callerName: "Jack Will", callerId: data['from']);

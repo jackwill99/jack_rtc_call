@@ -7,7 +7,7 @@ import 'package:uuid/uuid.dart';
 
 @protected
 class CallKitVOIP {
-  static late String _currentUuid;
+  static String? _currentUuid;
   static late CallKitParams callKitParams;
   CallKitVOIP._();
 
@@ -96,6 +96,7 @@ class CallKitVOIP {
           case Event.actionCallAccept:
             debugPrint(
                 "----------------------call accepte----------------------");
+            await FlutterCallkitIncoming.setCallConnected(_currentUuid!);
             RTCMediaService.acceptCall(
                 socketData: socketData, toRoute: toRoute);
 
@@ -104,7 +105,7 @@ class CallKitVOIP {
             socketData.socket.emit("declineCall", {
               "to": callKitParams.extra?["callerId"],
             });
-            await FlutterCallkitIncoming.endCall(_currentUuid);
+            callEnd();
             break;
           case Event.actionCallTimeout:
             debugPrint(
@@ -128,7 +129,13 @@ class CallKitVOIP {
   }
 
   static Future<void> callEnd() async {
-    await FlutterCallkitIncoming.endCall(_currentUuid);
+    if (_currentUuid != null) {
+      await FlutterCallkitIncoming.endCall(_currentUuid!);
+      _currentUuid = null;
+    } else {
+      debugPrint(
+          "----------------------current id is null----------------------");
+    }
   }
 
   static Future<void> checkAndNavigationCallingPage() async {
