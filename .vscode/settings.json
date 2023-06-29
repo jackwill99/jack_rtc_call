@@ -1,0 +1,34 @@
+{
+    "editor.fontLigatures": true,
+    "editor.formatOnPaste": true,
+    "explorer.confirmDelete": false,
+    "editor.formatOnSave": true,
+    "[dart]": {
+        "editor.formatOnType": true,
+        "editor.rulers": [80],
+        "editor.tabSize": 2,
+        "editor.selectionHighlight": false,
+        "editor.suggest.snippetsPreventQuickSuggestions": false,
+        "editor.suggestSelection": "first",
+        "editor.tabCompletion": "onlySnippets",
+        "editor.wordBasedSuggestions": false,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": true
+        },
+        "editor.trimAutoWhitespace": true,
+        "editor.defaultFormatter": "Dart-Code.dart-code"
+    },
+    "[yaml]": {
+        "editor.tabSize": 2,
+        "diffEditor.ignoreTrimWhitespace": false
+    },
+    "[json]": {
+        "editor.quickSuggestions": {
+            "strings": true
+        },
+        "editor.tabSize": 2,
+        "editor.suggest.insertMode": "replace",
+    },
+    "explorer.confirmDragAndDrop": false,
+    "typescript.updateImportsOnFileMove.enabled": "always"
+}

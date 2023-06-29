@@ -152,6 +152,7 @@ class RTCMediaService {
     isAudioOn.add(audioOn);
     isVideoOn.add(videoOn);
     isFrontCamera.add(frontCameraOn);
+    isPartnerVideoOpen.add(videoOn);
     await _setUpInitialize();
 
     // listen for remotePeer mediaTrack event
@@ -160,6 +161,7 @@ class RTCMediaService {
       await tempRemoteRenderer.initialize();
       tempRemoteRenderer.srcObject = event.streams[0];
       remoteRTCVideoRenderer.add(tempRemoteRenderer);
+      tempRemoteRenderer.dispose();
       // final remoteRenderer = await remoteRTCVideoRenderer.first;
       // remoteRenderer.srcObject = event.streams[0];
       debugPrint(
@@ -184,7 +186,7 @@ class RTCMediaService {
     await tempRemoteRenderer.initialize();
     tempRemoteRenderer.srcObject = localStream.value;
     localRTCVideoRenderer.add(tempRemoteRenderer);
-
+    tempRemoteRenderer.dispose();
     // add mediaTrack to peerConnection
     localStream.value!.getTracks().forEach((track) {
       RTCConnections.getRTCPeerConnection.addTrack(track, localStream.value!);
@@ -271,7 +273,7 @@ class RTCMediaService {
 
     socketData.myCurrentCallPartnerId = socketData.tempOffer['from'];
 
-    isCallingMedia.value = true;
+    isCallingMedia.add(true);
 
     //* call socket
     await SocketMediaService.acceptCallSocket(answer, socketData);
