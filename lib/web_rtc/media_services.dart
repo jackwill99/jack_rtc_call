@@ -148,6 +148,7 @@ class RTCMediaService {
     bool audioOn = true,
     bool videoOn = false,
     bool frontCameraOn = false,
+    required SocketData socketData,
   }) async {
     isAudioOn.add(audioOn);
     isVideoOn.add(videoOn);
@@ -161,7 +162,6 @@ class RTCMediaService {
       await tempRemoteRenderer.initialize();
       tempRemoteRenderer.srcObject = event.streams[0];
       remoteRTCVideoRenderer.add(tempRemoteRenderer);
-      tempRemoteRenderer.dispose();
       // final remoteRenderer = await remoteRTCVideoRenderer.first;
       // remoteRenderer.srcObject = event.streams[0];
       debugPrint(
@@ -173,12 +173,14 @@ class RTCMediaService {
     // get localStream
     localStream.value = await Navigator.mediaDevices.getUserMedia({
       'audio': audioOn,
-      'video': videoOn
-          ? {
-              'facingMode': frontCameraOn ? 'user' : 'environment',
-            }
-          : false,
+      'video': {
+        'facingMode': frontCameraOn ? 'user' : 'environment',
+      },
     });
+    // To turn off the local stream video
+    if (!videoOn) {
+      setVideoStatus(false, socketData);
+    }
 
     // set source for local video renderer
     // localRTCVideoRenderer.value.srcObject = localStream.value;
@@ -186,7 +188,6 @@ class RTCMediaService {
     await tempRemoteRenderer.initialize();
     tempRemoteRenderer.srcObject = localStream.value;
     localRTCVideoRenderer.add(tempRemoteRenderer);
-    tempRemoteRenderer.dispose();
     // add mediaTrack to peerConnection
     localStream.value!.getTracks().forEach((track) {
       RTCConnections.getRTCPeerConnection.addTrack(track, localStream.value!);
@@ -210,7 +211,7 @@ class RTCMediaService {
       isCallingMedia.add(true);
       await RTCConnections.restartConnections();
 
-      await setupMediaCall(videoOn: videoOn);
+      await setupMediaCall(videoOn: videoOn, socketData: socketData);
 
       final offer = await onListenMessageService(
         onMessage: (message) {
@@ -256,7 +257,10 @@ class RTCMediaService {
     };
 
     /// media call
-    await setupMediaCall(videoOn: socketData.tempOffer["video"]);
+    await setupMediaCall(
+      videoOn: socketData.tempOffer["video"],
+      socketData: socketData,
+    );
 
     SocketMediaService.videoMutedSocket(
       socketData.tempOffer["video"],
