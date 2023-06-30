@@ -103,11 +103,18 @@ class RTCMediaService {
     });
   }
 
+  static void setSpeakerStatus(bool status, SocketData socketData) {
+    localStream.value!.getAudioTracks().forEach((track) {
+      track.enableSpeakerphone(status);
+    });
+  }
+
   /// Data Channel
 
   static Future<void> sendMessage({
     required SocketData socketData,
-    required String message,
+    required dynamic message,
+    bool isBinary = false,
   }) async {
     debugPrint(
         "----------send partner chat id------------${socketData.partnerCurrentChatId}----------------------");
@@ -134,7 +141,11 @@ class RTCMediaService {
           RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         tempMessages.add(RTCDataChannelMessage(message));
       }
-      channel!.send(RTCDataChannelMessage(message));
+      channel!.send(
+        isBinary
+            ? RTCDataChannelMessage.fromBinary(message)
+            : RTCDataChannelMessage(message),
+      );
       debugPrint("----------------------sent----------------------");
     } else {
       print("Normal Mesage =======================");
@@ -147,7 +158,7 @@ class RTCMediaService {
   static Future<void> setupMediaCall({
     bool audioOn = true,
     bool videoOn = false,
-    bool frontCameraOn = false,
+    bool frontCameraOn = true,
     required SocketData socketData,
   }) async {
     isAudioOn.add(audioOn);
@@ -177,9 +188,14 @@ class RTCMediaService {
         'facingMode': frontCameraOn ? 'user' : 'environment',
       },
     });
+
     // To turn off the local stream video
-    if (!videoOn) {
+    if (videoOn) {
+      /// set to default speaker false
+      setSpeakerStatus(true, socketData);
+    } else {
       setVideoStatus(false, socketData);
+      setSpeakerStatus(false, socketData);
     }
 
     // set source for local video renderer
