@@ -200,14 +200,7 @@ class RTCMediaService {
     required SocketData socketData,
     required Future<dynamic> Function() toRoute,
   }) async {
-    if (isCallingMedia.value) {
-      toRoute().then((value) async {
-        if (value != null && value is bool && value == true) {
-          SocketServices.initializeRequest(socketData: socketData);
-          await RTCConnections.setupPeerConnection();
-        }
-      });
-    } else {
+    if (!isCallingMedia.value) {
       isCallingMedia.add(true);
       await RTCConnections.restartConnections();
 
@@ -228,14 +221,8 @@ class RTCMediaService {
       });
 
       print("Create Offer video ======================");
-
-      toRoute().then((value) async {
-        if (value != null && value is bool && value == true) {
-          SocketServices.initializeRequest(socketData: socketData);
-          await RTCConnections.setupPeerConnection();
-        }
-      });
     }
+    toRoute();
   }
 
   static Future<void> acceptCall({
@@ -282,12 +269,7 @@ class RTCMediaService {
     //* call socket
     await SocketMediaService.acceptCallSocket(answer, socketData);
 
-    toRoute().then((value) async {
-      if (value != null && value is bool && value == true) {
-        SocketServices.initializeRequest(socketData: socketData);
-        await RTCConnections.setupPeerConnection();
-      }
-    });
+    toRoute();
   }
 
   static Future<void> callEnd() async {

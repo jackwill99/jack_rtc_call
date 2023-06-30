@@ -5,6 +5,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:jack_rtc_call/socket/socket_services.dart';
 
 @protected
 class RTCConnections {
@@ -166,5 +167,11 @@ class RTCConnections {
     await setupPeerConnection();
     debugPrint(
         "----------------------Ready to restart peer connection----------------------");
+  }
+
+  /// Check and ReInitialize peer connections
+  static Future<void> checkAndReinitialize(SocketData socketData) async {
+    SocketServices.initializeRequest(socketData: socketData);
+    await RTCConnections.setupPeerConnection();
   }
 }

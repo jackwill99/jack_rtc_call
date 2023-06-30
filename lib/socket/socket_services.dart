@@ -94,6 +94,8 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
 
     //! For Both Client 1 and Client 2 to update their current chatting user
     socketData.socket.on('updatePartnerInfoNotify', (data) async {
+      debugPrint(
+          "----------------------update partner info notify------${data['partner']['myCurrentChatId']}----------------");
       socketData.partnerCurrentChatId = data['partner']['myCurrentChatId'];
       debugPrint(
           "----------updatePartnerInfoNotify------------my partner is chatting with ${socketData.partnerCurrentChatId}----------------------");

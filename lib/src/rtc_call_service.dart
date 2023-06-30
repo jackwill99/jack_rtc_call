@@ -58,10 +58,15 @@ class JackRTCCallService extends JackRTCData {
     await RTCMediaService.acceptCall(socketData: socketData, toRoute: toRoute);
   }
 
-  Future<void> endCall() async {
+  Future<void> endCall(bool isComesFromChat) async {
     await RTCMediaService.callEnd();
-    await RTCConnections.dispose();
-    SocketMediaService.endCallSocket(socketData);
+    if (socketData.myCurrentCallPartnerId.isNotEmpty) {
+      await RTCConnections.dispose();
+      SocketMediaService.endCallSocket(socketData);
+    }
+    if (isComesFromChat) {
+      RTCConnections.checkAndReinitialize(socketData);
+    }
   }
 
   void setAudio(bool status) {
@@ -97,11 +102,10 @@ class JackRTCCallService extends JackRTCData {
 
   Future<void> enterChatPage() async {
     if (!RTCMediaService.isCallingMedia.value) {
-      SocketServices.initializeRequest(socketData: socketData);
-
       /// ✅ Everytime you want to start communication, open connection
       await RTCConnections.setupPeerConnection();
     }
+    SocketServices.initializeRequest(socketData: socketData);
   }
 
   Future<void> leaveChatPage() async {
