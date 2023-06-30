@@ -42,7 +42,7 @@ class JackRTCCallService extends JackRTCData {
   // *************** Data Channel
 
   Future<void> sendMessage(
-      {required dynamic message, required bool isBinary}) async {
+      {required dynamic message, bool isBinary = false}) async {
     await RTCMediaService.sendMessage(
       socketData: socketData,
       message: message,
