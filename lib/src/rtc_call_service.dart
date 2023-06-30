@@ -41,8 +41,13 @@ class JackRTCCallService extends JackRTCData {
 
   // *************** Data Channel
 
-  Future<void> sendMessage(String message) async {
-    await RTCMediaService.sendMessage(socketData: socketData, message: message);
+  Future<void> sendMessage(
+      {required dynamic message, required bool isBinary}) async {
+    await RTCMediaService.sendMessage(
+      socketData: socketData,
+      message: message,
+      isBinary: isBinary,
+    );
   }
 
   // *************** Media Calling
