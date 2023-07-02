@@ -192,7 +192,12 @@ mixin SocketMediaService {
       debugPrint("----------------------new call-------$data---------------");
       socketData.tempOffer = data;
       await CallKitVOIP.inComingCall(
-          callerName: "Jack Will", callerId: data['from']);
+        callerName: data['callerName'],
+        callerId: data['from'],
+        isVideo: data['video'],
+        callerHandle: data['callerHandle'],
+        callerAvatar: data['callerAvatar'],
+      );
     });
 
     socketData.socket.on("callEndNotify", (data) {

@@ -31,7 +31,8 @@ class CallKitVOIP {
     bool isVideo = false,
   }) async {
     _currentUuid = const Uuid().v4();
-
+    debugPrint(
+        "----------------------incomming call $_currentUuid----------------------");
     final params = CallKitParams(
       id: _currentUuid,
       nameCaller: callerName,
@@ -92,13 +93,15 @@ class CallKitVOIP {
       FlutterCallkitIncoming.onEvent.listen((event) async {
         switch (event!.event) {
           case Event.actionCallIncoming:
+            debugPrint(
+                "----------------------incoming call----------------------");
             break;
           case Event.actionCallAccept:
-            debugPrint(
-                "----------------------call accepte----------------------");
-            await FlutterCallkitIncoming.setCallConnected(_currentUuid!);
             RTCMediaService.acceptCall(
                 socketData: socketData, toRoute: toRoute);
+            if (_currentUuid != null) {
+              await FlutterCallkitIncoming.setCallConnected(_currentUuid!);
+            }
 
             break;
           case Event.actionCallDecline:
@@ -129,9 +132,13 @@ class CallKitVOIP {
   }
 
   static Future<void> callEnd() async {
+    debugPrint(
+        "----------------------call end in call kit $_currentUuid----------------------");
     if (_currentUuid != null) {
+      final i = await FlutterCallkitIncoming.activeCalls();
       await FlutterCallkitIncoming.endCall(_currentUuid!);
       _currentUuid = null;
+      debugPrint("----------------------active call $i----------------------");
     } else {
       debugPrint(
           "----------------------current id is null----------------------");

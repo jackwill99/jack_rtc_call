@@ -51,11 +51,26 @@ class JackRTCCallService extends JackRTCData {
   }
 
   // *************** Media Calling
-  Future<void> mediaCall(bool isVideoOn) async {
+
+  /// `callerName` is the name of the caller to display
+  ///
+  /// `callerHandle` may be email or phone number or None
+  ///
+  /// `callerAvatar` works only in Android to show the avatar of the caller profile
+  ///
+  Future<void> mediaCall({
+    required bool isVideoOn,
+    required String callerName,
+    String? callerHandle,
+    String? callerAvatar,
+  }) async {
     await RTCMediaService.mediaCall(
       videoOn: isVideoOn,
       socketData: socketData,
       toRoute: toRoute,
+      callerName: callerName,
+      callerAvatar: callerAvatar,
+      callerHandle: callerHandle,
     );
   }
 
@@ -64,7 +79,7 @@ class JackRTCCallService extends JackRTCData {
   }
 
   Future<void> endCall(bool isComesFromChat) async {
-    await RTCMediaService.callEnd();
+    await RTCMediaService.callEnd(socketData);
     if (socketData.myCurrentCallPartnerId.isNotEmpty) {
       await RTCConnections.dispose();
       SocketMediaService.endCallSocket(socketData);
@@ -86,12 +101,12 @@ class JackRTCCallService extends JackRTCData {
     RTCMediaService.switchCamera();
   }
 
-  void setSpeaker(bool status) {
-    RTCMediaService.setSpeakerStatus(status, socketData);
+  Future<void> setSpeaker(bool status) async {
+    await RTCMediaService.setSpeakerStatus(status, socketData);
   }
 
-  /// `isCallingMedia, isAudioOn, isVideoOn, isFrontCamera, isPartnerVideoOpen`
-  Stream<(bool, bool, bool, bool, bool)> mediaStatus() {
+  /// `isCallingMedia, isAudioOn, isVideoOn, isFrontCamera, isPartnerVideoOpen, isSpeakerOn`
+  Stream<(bool, bool, bool, bool, bool, bool)> mediaStatus() {
     return RTCMediaService.mediaStatus;
   }
 

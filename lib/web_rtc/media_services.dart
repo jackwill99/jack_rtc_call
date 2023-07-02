@@ -44,6 +44,7 @@ class RTCMediaService {
     isVideoOn.add(false);
     isFrontCamera.add(true);
     isPartnerVideoOpen.add(false);
+    isSpeakerOn.add(false);
   }
 
   /// --------------------------Media status--------------------------
@@ -52,22 +53,25 @@ class RTCMediaService {
       isAudioOn = BehaviorSubject<bool>(),
       isVideoOn = BehaviorSubject<bool>(),
       isFrontCamera = BehaviorSubject<bool>();
-  static final isPartnerVideoOpen = BehaviorSubject<bool>();
+  static final isPartnerVideoOpen = BehaviorSubject<bool>(),
+      isSpeakerOn = BehaviorSubject<bool>();
 
-  static Stream<(bool, bool, bool, bool, bool)> get mediaStatus {
-    return Rx.combineLatest5<bool, bool, bool, bool, bool,
-        (bool, bool, bool, bool, bool)>(
+  static Stream<(bool, bool, bool, bool, bool, bool)> get mediaStatus {
+    return Rx.combineLatest6<bool, bool, bool, bool, bool, bool,
+        (bool, bool, bool, bool, bool, bool)>(
       isCallingMedia.stream,
       isAudioOn.stream,
       isVideoOn.stream,
       isFrontCamera.stream,
       isPartnerVideoOpen.stream,
+      isSpeakerOn.stream,
       (
         isCallingMedia,
         isAudioOn,
         isVideoOn,
         isFrontCamera,
         isPartnerVideoOpen,
+        isSpeakerOn,
       ) =>
           (
         isCallingMedia,
@@ -75,6 +79,7 @@ class RTCMediaService {
         isVideoOn,
         isFrontCamera,
         isPartnerVideoOpen,
+        isSpeakerOn,
       ),
     );
   }
@@ -103,10 +108,15 @@ class RTCMediaService {
     });
   }
 
-  static void setSpeakerStatus(bool status, SocketData socketData) {
-    localStream.value!.getAudioTracks().forEach((track) {
-      track.enableSpeakerphone(status);
-    });
+  static Future<void> setSpeakerStatus(
+    bool status,
+    SocketData socketData,
+  ) async {
+    isSpeakerOn.add(status);
+    debugPrint(
+        "----------------------change speaker $status----------------------");
+
+    await Helper.setSpeakerphoneOn(status);
   }
 
   /// Data Channel
@@ -192,7 +202,9 @@ class RTCMediaService {
     // To turn off the local stream video
     if (videoOn) {
       /// set to default speaker false
-      setSpeakerStatus(true, socketData);
+      setSpeakerStatus(false, socketData);
+      debugPrint(
+          "----------------------speaker with false default----------------------");
     } else {
       setVideoStatus(false, socketData);
       setSpeakerStatus(false, socketData);
@@ -211,11 +223,16 @@ class RTCMediaService {
   }
 
   /// You should return true when not ending the media calling
-  static Future<void> mediaCall({
-    required bool videoOn,
-    required SocketData socketData,
-    required Future<dynamic> Function() toRoute,
-  }) async {
+  static Future<void> mediaCall(
+      {required bool videoOn,
+      required SocketData socketData,
+      required Future<dynamic> Function() toRoute,
+      required String callerName,
+      String? callerHandle,
+      String? callerAvatar,
+      required}) async {
+    debugPrint(
+        "---------------------${isCallingMedia.value}---in media call-------------------");
     if (!isCallingMedia.value) {
       isCallingMedia.add(true);
       await RTCConnections.restartConnections();
@@ -234,6 +251,9 @@ class RTCMediaService {
         "to": socketData.myCurrentChatId,
         "offer": offer.toMap(),
         "video": videoOn,
+        "callerName": callerName,
+        "callerHandle": callerHandle,
+        "callerAvatar": callerAvatar,
       });
 
       print("Create Offer video ======================");
@@ -286,14 +306,27 @@ class RTCMediaService {
     await SocketMediaService.acceptCallSocket(answer, socketData);
 
     toRoute();
+
+    if (socketData.tempOffer["video"]) {
+      setSpeakerStatus(true, socketData);
+    }
   }
 
-  static Future<void> callEnd() async {
-    localRTCVideoRenderer.value.dispose();
-    remoteRTCVideoRenderer.value.dispose();
+  static Future<void> callEnd(SocketData socketData) async {
+    localStream.value?.getTracks().forEach((track) async {
+      await track.stop();
+    });
+    await RTCMediaService.setSpeakerStatus(false, socketData);
+
     localStream.value?.dispose();
+    localStream.value = null;
+    localRTCVideoRenderer.value.srcObject = null;
+    remoteRTCVideoRenderer.value.srcObject = null;
+    await localRTCVideoRenderer.value.dispose();
+    await remoteRTCVideoRenderer.value.dispose();
     localRTCVideoRenderer.add(RTCVideoRenderer());
     remoteRTCVideoRenderer.add(RTCVideoRenderer());
+    isCallingMedia.add(false);
     await CallKitVOIP.callEnd();
   }
 
