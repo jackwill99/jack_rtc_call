@@ -40,11 +40,13 @@ class RTCConnections {
     _rtcPeerConnection = await createPeerConnection({
       'iceServers': [
         {
-          'urls': ["stun:stun.holugyi.com:5349"]
-          // [
+          'urls': "stun:stun.telemed.sabahna.com:5349"
           //   'stun:stun1.l.google.com:19302',
-          //   'stun:stun2.l.google.com:19302'
-          // ]
+        },
+        {
+          "urls": "turn:turn.telemed.sabahna.com:5349",
+          "credential": "sabahna",
+          "username": "sabahna"
         }
       ]
     });
