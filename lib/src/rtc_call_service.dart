@@ -21,20 +21,30 @@ class JackRTCCallService extends JackRTCData {
   /// }
   ///
   JackRTCCallService({
-    required String socketUrl,
-    required String myId,
     required Future<dynamic> Function() toCallingPage,
     required Function(RTCDataChannelMessage message) onListenMessage,
   }) {
-    SocketServices.connectToServer(
-        socketUrl: socketUrl, myId: myId, socketData: socketData);
-    RTCMediaService.init();
     RTCMediaService.onListenMessage = (message) {
       onListenMessage(message);
     };
     toRoute = toCallingPage;
-
     CallKitVOIP.listenerEvent(socketData: socketData, toRoute: toCallingPage);
+  }
+
+  // ------------------------ Connection and Disconnection ---------------------
+  Future<void> disconnect() async {
+    SocketServices.chatClose(socketData: socketData);
+
+    /// ❌ Everytime you leave the chat conversation, dispose peer connection.
+    await RTCConnections.dispose();
+
+    socketData.socket.disconnect();
+  }
+
+  void connect({required String socketUrl, required String myId}) {
+    SocketServices.connectToServer(
+        socketUrl: socketUrl, myId: myId, socketData: socketData);
+    RTCMediaService.init();
   }
 
   // ------------------------ Media Services Section ---------------------
