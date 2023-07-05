@@ -35,6 +35,8 @@ class RTCMediaService {
 
   static late Function(RTCDataChannelMessage message) onListenMessage;
 
+  static late Function() onPartnerCallEnded;
+
   static void init() {
     localRTCVideoRenderer.add(RTCVideoRenderer());
     remoteRTCVideoRenderer.add(RTCVideoRenderer());

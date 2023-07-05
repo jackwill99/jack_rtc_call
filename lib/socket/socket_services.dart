@@ -203,6 +203,7 @@ mixin SocketMediaService {
     socketData.socket.on("callEndNotify", (data) {
       socketData.hasSDP = false;
       socketData.myCurrentCallPartnerId = "";
+      RTCMediaService.onPartnerCallEnded();
     });
 
     socketData.socket.on("declineCallNotify", (data) async {

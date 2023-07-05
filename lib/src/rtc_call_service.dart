@@ -23,10 +23,12 @@ class JackRTCCallService extends JackRTCData {
   JackRTCCallService({
     required Future<dynamic> Function() toCallingPage,
     required Function(RTCDataChannelMessage message) onListenMessage,
+    required void Function() onListenPartnerCallEnded,
   }) {
     RTCMediaService.onListenMessage = (message) {
       onListenMessage(message);
     };
+    RTCMediaService.onPartnerCallEnded = onListenPartnerCallEnded;
     toRoute = toCallingPage;
     CallKitVOIP.listenerEvent(socketData: socketData, toRoute: toCallingPage);
   }
