@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 // ignore: implementation_imports
 import 'package:flutter_webrtc/src/native/factory_impl.dart' as Navigator;
+import 'package:get_it/get_it.dart';
 import 'package:jack_rtc_call/callkit/callkit.dart';
 import 'package:jack_rtc_call/socket/socket_services.dart';
 import 'package:jack_rtc_call/web_rtc/rtc.dart';
@@ -94,12 +95,12 @@ class RTCMediaService {
     });
   }
 
-  static void setVideoStatus(bool status, SocketData socketData) {
+  static void setVideoStatus(bool status) {
     isVideoOn.add(status);
     localStream.value!.getVideoTracks().forEach((track) {
       track.enabled = status;
     });
-    SocketMediaService.videoMutedSocket(status, socketData);
+    SocketMediaService.videoMutedSocket(status);
   }
 
   static void switchCamera() {
@@ -112,7 +113,6 @@ class RTCMediaService {
 
   static Future<void> setSpeakerStatus(
     bool status,
-    SocketData socketData,
   ) async {
     isSpeakerOn.add(status);
     debugPrint(
@@ -124,10 +124,11 @@ class RTCMediaService {
   /// Data Channel
 
   static Future<void> sendMessage({
-    required SocketData socketData,
     required dynamic message,
     bool isBinary = false,
   }) async {
+    final socketData = GetIt.instance<SocketData>();
+
     debugPrint(
         "----------send partner chat id------------${socketData.partnerCurrentChatId}----------------------");
 
@@ -139,7 +140,6 @@ class RTCMediaService {
           onMessage: (message) {
             onListenMessage(message);
           },
-          socketData: socketData,
         );
 
         //! From Client 1
@@ -171,7 +171,6 @@ class RTCMediaService {
     bool audioOn = true,
     bool videoOn = false,
     bool frontCameraOn = true,
-    required SocketData socketData,
   }) async {
     isAudioOn.add(audioOn);
     isVideoOn.add(videoOn);
@@ -204,12 +203,12 @@ class RTCMediaService {
     // To turn off the local stream video
     if (videoOn) {
       /// set to default speaker false
-      setSpeakerStatus(false, socketData);
+      setSpeakerStatus(false);
       debugPrint(
           "----------------------speaker with false default----------------------");
     } else {
-      setVideoStatus(false, socketData);
-      setSpeakerStatus(false, socketData);
+      setVideoStatus(false);
+      setSpeakerStatus(false);
     }
 
     // set source for local video renderer
@@ -227,25 +226,25 @@ class RTCMediaService {
   /// You should return true when not ending the media calling
   static Future<void> mediaCall(
       {required bool videoOn,
-      required SocketData socketData,
       required Future<dynamic> Function() toRoute,
       required String callerName,
       String? callerHandle,
       String? callerAvatar,
       required}) async {
+    final socketData = GetIt.instance<SocketData>();
+
     debugPrint(
         "---------------------${isCallingMedia.value}---in media call-------------------");
     if (!isCallingMedia.value) {
       isCallingMedia.add(true);
       await RTCConnections.restartConnections();
 
-      await setupMediaCall(videoOn: videoOn, socketData: socketData);
+      await setupMediaCall(videoOn: videoOn);
 
       final offer = await onListenMessageService(
         onMessage: (message) {
           onListenMessage(message);
         },
-        socketData: socketData,
       );
 
       //! From Client 1
@@ -264,9 +263,10 @@ class RTCMediaService {
   }
 
   static Future<void> acceptCall({
-    required SocketData socketData,
     required Future<dynamic> Function() toRoute,
   }) async {
+    final socketData = GetIt.instance<SocketData>();
+
     await RTCConnections.restartConnections();
 
     // data channel
@@ -274,7 +274,7 @@ class RTCMediaService {
       channel = ch;
 
       ch.onDataChannelState = (state) {
-        onDataChannelService(state: state, socketData: socketData);
+        onDataChannelService(state: state);
       };
       ch.onMessage = (message) {
         onListenMessage(message);
@@ -284,12 +284,10 @@ class RTCMediaService {
     /// media call
     await setupMediaCall(
       videoOn: socketData.tempOffer["video"],
-      socketData: socketData,
     );
 
     SocketMediaService.videoMutedSocket(
       socketData.tempOffer["video"],
-      socketData,
     );
 
     // create SDP answer
@@ -305,20 +303,20 @@ class RTCMediaService {
     isCallingMedia.add(true);
 
     //* call socket
-    await SocketMediaService.acceptCallSocket(answer, socketData);
+    await SocketMediaService.acceptCallSocket(answer);
 
     toRoute();
 
     if (socketData.tempOffer["video"]) {
-      setSpeakerStatus(true, socketData);
+      setSpeakerStatus(true);
     }
   }
 
-  static Future<void> callEnd(SocketData socketData) async {
+  static Future<void> callEnd() async {
     localStream.value?.getTracks().forEach((track) async {
       await track.stop();
     });
-    await RTCMediaService.setSpeakerStatus(false, socketData);
+    await RTCMediaService.setSpeakerStatus(false);
 
     localStream.value?.dispose();
     localStream.value = null;
@@ -341,14 +339,15 @@ class RTCMediaService {
 
   static Future<RTCSessionDescription> onListenMessageService({
     required void Function(RTCDataChannelMessage message) onMessage,
-    required SocketData socketData,
   }) async {
+    final socketData = GetIt.instance<SocketData>();
+
     // listening data channel
     channel = await RTCConnections.getRTCPeerConnection.createDataChannel(
         'dataChannel-${123456}',
         RTCDataChannelInit()..id = int.parse("123456"));
     channel!.onDataChannelState = (state) {
-      onDataChannelService(state: state, socketData: socketData);
+      onDataChannelService(state: state);
     };
 
     channel!.onMessage = (data) {
@@ -362,8 +361,9 @@ class RTCMediaService {
 
   static Future<void> onDataChannelService({
     required RTCDataChannelState state,
-    required SocketData socketData,
   }) async {
+    final socketData = GetIt.instance<SocketData>();
+
     if (state == RTCDataChannelState.RTCDataChannelOpen) {
       if (tempMessages.isNotEmpty) {
         for (var i in tempMessages) {

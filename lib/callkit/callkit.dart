@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:get_it/get_it.dart';
 import 'package:jack_rtc_call/socket/socket_services.dart';
 import 'package:jack_rtc_call/web_rtc/media_services.dart';
 import 'package:uuid/uuid.dart';
@@ -85,10 +86,11 @@ class CallKitVOIP {
   }
 
   static Future<void> listenerEvent({
-    required SocketData socketData,
     required Future<dynamic> Function() toRoute,
     void Function(CallEvent)? callback,
   }) async {
+    final socketData = GetIt.instance<SocketData>();
+
     try {
       FlutterCallkitIncoming.onEvent.listen((event) async {
         switch (event!.event) {
@@ -97,8 +99,7 @@ class CallKitVOIP {
                 "----------------------incoming call----------------------");
             break;
           case Event.actionCallAccept:
-            RTCMediaService.acceptCall(
-                socketData: socketData, toRoute: toRoute);
+            RTCMediaService.acceptCall(toRoute: toRoute);
             if (_currentUuid != null) {
               await FlutterCallkitIncoming.setCallConnected(_currentUuid!);
             }

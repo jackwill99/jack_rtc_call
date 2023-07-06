@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:jack_rtc_call/callkit/callkit.dart';
 import 'package:jack_rtc_call/web_rtc/rtc.dart';
 import 'package:jack_rtc_call/web_rtc/media_services.dart';
@@ -8,16 +9,16 @@ import 'package:socket_io_client/socket_io_client.dart';
 class SocketServices with SocketDataChannelService, SocketMediaService {
   SocketServices._();
 
-  static void connectToServer({
-    required SocketData socketData,
-  }) {
+  static void connectToServer() {
+    final socketData = GetIt.instance<SocketData>();
+
     debugPrint(
         "----------------------connecting to server----------------------");
     socketData.getSocket.connect();
     socketData.getSocket.on("connect", (data) {
       // isConnect = true;
       print('Connected');
-      _initialize(socketData: socketData);
+      _initialize();
     });
 
     //! Main For Both Client 1 and Client 2 to request the start of chat
@@ -40,7 +41,9 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
     );
   }
 
-  static void initializeRequest({required SocketData socketData}) {
+  static void initializeRequest() {
+    final socketData = GetIt.instance<SocketData>();
+
     debugPrint(
         "----------------------initialize------ ${socketData.myCurrentChatId}----------------");
     //!  For Client 1
@@ -56,7 +59,8 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
   ///
   /// 📲 Assume like that flow ...
   ///
-  static void _initialize({required SocketData socketData}) {
+  static void _initialize() {
+    final socketData = GetIt.instance<SocketData>();
     //! For Both Client 1 and Client 2 to share their current chatting user
     socketData.getSocket.on(
       'requestChatInfoNotify',
@@ -92,13 +96,15 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
       socketData.partnerHasSDP = data['partner']['hasSDP'];
     });
 
-    SocketDataChannelService.initializeDataChannel(socketData: socketData);
-    SocketMediaService.initializeMedia(socketData: socketData);
+    SocketDataChannelService.initializeDataChannel();
+    SocketMediaService.initializeMedia();
   }
 
   ///-----------------------------------------------------
 
-  static void chatClose({required SocketData socketData}) {
+  static void chatClose() {
+    final socketData = GetIt.instance<SocketData>();
+
     if (socketData.partnerCurrentChatId.isNotEmpty &&
         socketData.myUserId == socketData.partnerCurrentChatId) {
       socketData.getSocket.emit(
@@ -120,11 +126,14 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
 
 @protected
 mixin SocketDataChannelService {
-  static void initializeDataChannel({required SocketData socketData}) {
+  static void initializeDataChannel() {
+    final socketData = GetIt.instance<SocketData>();
+
     //! For Client 1 / DataChannel
     socketData.getSocket.on("exchangeSDPAnswerNotify", (data) async {
       await SocketMediaService.socketSDPAnswer(
-          data: data, socketData: socketData);
+        data: data,
+      );
     });
 
     //! For Client 2 / DataChannel
@@ -134,8 +143,7 @@ mixin SocketDataChannelService {
         // final chatSocketController = Get.find<ChatController>();
 
         ch.onDataChannelState = (state) {
-          RTCMediaService.onDataChannelService(
-              state: state, socketData: socketData);
+          RTCMediaService.onDataChannelService(state: state);
         };
         ch.onMessage = (message) {
           RTCMediaService.onListenMessage(message);
@@ -170,10 +178,12 @@ mixin SocketDataChannelService {
 
 @protected
 mixin SocketMediaService {
-  static void initializeMedia({required SocketData socketData}) {
+  static void initializeMedia() {
+    final socketData = GetIt.instance<SocketData>();
+
     //! For Client 1 / Media Call
     socketData.getSocket.on("callAnswered", (data) async {
-      await socketSDPAnswer(data: data, socketData: socketData, isVideo: true);
+      await socketSDPAnswer(data: data, isVideo: true);
       socketData.myCurrentCallPartnerId = data['from'];
     });
 
@@ -208,9 +218,10 @@ mixin SocketMediaService {
 
   static Future<void> socketSDPAnswer({
     required dynamic data,
-    required SocketData socketData,
     bool isVideo = false,
   }) async {
+    final socketData = GetIt.instance<SocketData>();
+
     debugPrint(
         "---------------just-------${RTCConnections.getRTCPeerConnection.signalingState}----------------------");
     try {
@@ -239,8 +250,9 @@ mixin SocketMediaService {
     }
   }
 
-  static Future<void> acceptCallSocket(
-      RTCSessionDescription answer, SocketData socketData) async {
+  static Future<void> acceptCallSocket(RTCSessionDescription answer) async {
+    final socketData = GetIt.instance<SocketData>();
+
     // listen for Remote IceCandidate
     socketData.getSocket.on("exchangeIceNotify", (data) {
       RTCConnections.addCandidates(
@@ -258,14 +270,18 @@ mixin SocketMediaService {
     });
   }
 
-  static void videoMutedSocket(bool status, SocketData socketData) {
+  static void videoMutedSocket(bool status) {
+    final socketData = GetIt.instance<SocketData>();
+
     socketData.getSocket.emit("videoMuted", {
       "to": socketData.myCurrentCallPartnerId,
       "status": status,
     });
   }
 
-  static void endCallSocket(SocketData socketData) {
+  static void endCallSocket() {
+    final socketData = GetIt.instance<SocketData>();
+
     socketData.hasSDP = false;
     socketData.getSocket.emit("callEnd", {
       "to": socketData.myCurrentCallPartnerId,
@@ -301,13 +317,16 @@ class SocketData {
         "----------------------setting socket is success----------------------");
   }
 
-  void settingSocket(SocketData socketData) {
+  void settingSocket() {
+    final socketData = GetIt.instance<SocketData>();
+
     final socket = io(
       socketData.socketUrl,
       <String, dynamic>{
         'transports': ['websocket'],
         //ToDo ! Own ID
         'query': {"userId": socketData.myUserId},
+        'forceNew': true,
         // 'path': '/sockets.io',
       },
     );
