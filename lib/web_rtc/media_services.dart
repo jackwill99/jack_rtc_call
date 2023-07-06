@@ -143,7 +143,7 @@ class RTCMediaService {
         );
 
         //! From Client 1
-        socketData.socket.emit('exchangeSDPOffer', {
+        socketData.getSocket.emit('exchangeSDPOffer', {
           "to": socketData.myCurrentChatId,
           "offer": offer.toMap(),
         });
@@ -249,7 +249,7 @@ class RTCMediaService {
       );
 
       //! From Client 1
-      socketData.socket.emit('makeCall', {
+      socketData.getSocket.emit('makeCall', {
         "to": socketData.myCurrentChatId,
         "offer": offer.toMap(),
         "video": videoOn,

@@ -12,7 +12,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
     required String socketUrl,
     required SocketData socketData,
   }) {
-    socketData.socket = io(
+    final socket = io(
       socketUrl,
       <String, dynamic>{
         'transports': ['websocket'],
@@ -21,20 +21,21 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
         // 'path': '/sockets.io',
       },
     );
-    socketData.socket.connect();
-    socketData.socket.on("connect", (data) {
+    socketData.setSocket = socket;
+    socketData.getSocket.connect();
+    socketData.getSocket.on("connect", (data) {
       // isConnect = true;
       print('Connected');
       _initialize(socketData: socketData);
     });
 
     //! Main For Both Client 1 and Client 2 to request the start of chat
-    socketData.socket.on(
+    socketData.getSocket.on(
       'askRequestChatNotify',
       (data) {
         debugPrint(
             "----------------------askRequestChatNotify---${socketData.myCurrentChatId}-------------------");
-        socketData.socket.emit(
+        socketData.getSocket.emit(
           'requestChatInfo',
           {
             "to": data['from'],
@@ -52,7 +53,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
     debugPrint(
         "----------------------initialize------ ${socketData.myCurrentChatId}----------------");
     //!  For Client 1
-    socketData.socket
+    socketData.getSocket
         .emit("askRequestChat", {"to": socketData.myCurrentChatId});
   }
 
@@ -66,7 +67,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
   ///
   static void _initialize({required SocketData socketData}) {
     //! For Both Client 1 and Client 2 to share their current chatting user
-    socketData.socket.on(
+    socketData.getSocket.on(
       'requestChatInfoNotify',
       (data) {
         socketData.partnerCurrentChatId = data['partner']['myCurrentChatId'];
@@ -76,7 +77,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
 
         if (socketData.partnerCurrentChatId.isNotEmpty &&
             socketData.myUserId == socketData.partnerCurrentChatId) {
-          socketData.socket.emit(
+          socketData.getSocket.emit(
             'updatePartnerInfo',
             {
               "to": socketData.myCurrentChatId,
@@ -91,7 +92,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
     );
 
     //! For Both Client 1 and Client 2 to update their current chatting user
-    socketData.socket.on('updatePartnerInfoNotify', (data) async {
+    socketData.getSocket.on('updatePartnerInfoNotify', (data) async {
       debugPrint(
           "----------------------update partner info notify------${data['partner']['myCurrentChatId']}----------------");
       socketData.partnerCurrentChatId = data['partner']['myCurrentChatId'];
@@ -109,7 +110,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
   static void chatClose({required SocketData socketData}) {
     if (socketData.partnerCurrentChatId.isNotEmpty &&
         socketData.myUserId == socketData.partnerCurrentChatId) {
-      socketData.socket.emit(
+      socketData.getSocket.emit(
         'updatePartnerInfo',
         {
           "to": socketData.myCurrentChatId,
@@ -130,13 +131,13 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
 mixin SocketDataChannelService {
   static void initializeDataChannel({required SocketData socketData}) {
     //! For Client 1 / DataChannel
-    socketData.socket.on("exchangeSDPAnswerNotify", (data) async {
+    socketData.getSocket.on("exchangeSDPAnswerNotify", (data) async {
       await SocketMediaService.socketSDPAnswer(
           data: data, socketData: socketData);
     });
 
     //! For Client 2 / DataChannel
-    socketData.socket.on("exchangeSDPOfferNotify", (data) async {
+    socketData.getSocket.on("exchangeSDPOfferNotify", (data) async {
       RTCConnections.getRTCPeerConnection.onDataChannel = (ch) {
         RTCMediaService.channel = ch;
         // final chatSocketController = Get.find<ChatController>();
@@ -151,7 +152,7 @@ mixin SocketDataChannelService {
       };
 
       // listen for Remote IceCandidate
-      socketData.socket.on("exchangeIceNotify", (data) {
+      socketData.getSocket.on("exchangeIceNotify", (data) {
         RTCConnections.addCandidates(
           candidate: data["ice"]["candidate"],
           sdpMid: data['ice']["sdpMid"],
@@ -166,7 +167,7 @@ mixin SocketDataChannelService {
       socketData.hasSDP = true;
       socketData.partnerHasSDP = true;
 
-      socketData.socket.emit("exchangeSDPAnswer", {
+      socketData.getSocket.emit("exchangeSDPAnswer", {
         {
           "to": data['from'],
           "answer": answer.toMap(),
@@ -180,13 +181,13 @@ mixin SocketDataChannelService {
 mixin SocketMediaService {
   static void initializeMedia({required SocketData socketData}) {
     //! For Client 1 / Media Call
-    socketData.socket.on("callAnswered", (data) async {
+    socketData.getSocket.on("callAnswered", (data) async {
       await socketSDPAnswer(data: data, socketData: socketData, isVideo: true);
       socketData.myCurrentCallPartnerId = data['from'];
     });
 
     //! For Client 2 / MediaCall
-    socketData.socket.on("newCall", (data) async {
+    socketData.getSocket.on("newCall", (data) async {
       debugPrint("----------------------new call-------$data---------------");
       socketData.tempOffer = data;
       await CallKitVOIP.inComingCall(
@@ -198,20 +199,20 @@ mixin SocketMediaService {
       );
     });
 
-    socketData.socket.on("callEndNotify", (data) {
+    socketData.getSocket.on("callEndNotify", (data) {
       socketData.hasSDP = false;
       socketData.myCurrentCallPartnerId = "";
       RTCMediaService.onPartnerCallEnded();
     });
 
-    socketData.socket.on("declineCallNotify", (data) async {
+    socketData.getSocket.on("declineCallNotify", (data) async {
       // JackLocalNotificationApi.showNotification(title: "Called Declined");
     });
-    socketData.socket.on("missedCallNotify", (data) async {});
-    socketData.socket.on("videoMutedNotify", (data) async {
+    socketData.getSocket.on("missedCallNotify", (data) async {});
+    socketData.getSocket.on("videoMutedNotify", (data) async {
       RTCMediaService.isPartnerVideoOpen.add(data['status']);
     });
-    socketData.socket.on("videoRequestNotify", (data) async {});
+    socketData.getSocket.on("videoRequestNotify", (data) async {});
   }
 
   static Future<void> socketSDPAnswer({
@@ -236,7 +237,7 @@ mixin SocketMediaService {
         "-----------exchangeIce stack-----------${RTCConnections.rtcIceCadidates.length}----------------------");
     // send iceCandidate generated to remote peer over signalling
     for (RTCIceCandidate i in RTCConnections.rtcIceCadidates) {
-      socketData.socket.emit("exchangeIce", {
+      socketData.getSocket.emit("exchangeIce", {
         "to": socketData.myCurrentChatId,
         "ice": {
           "sdpMid": i.sdpMid,
@@ -250,7 +251,7 @@ mixin SocketMediaService {
   static Future<void> acceptCallSocket(
       RTCSessionDescription answer, SocketData socketData) async {
     // listen for Remote IceCandidate
-    socketData.socket.on("exchangeIceNotify", (data) {
+    socketData.getSocket.on("exchangeIceNotify", (data) {
       RTCConnections.addCandidates(
         candidate: data["ice"]["candidate"],
         sdpMid: data['ice']["sdpMid"],
@@ -258,7 +259,7 @@ mixin SocketMediaService {
       );
     });
 
-    socketData.socket.emit("answerCall", {
+    socketData.getSocket.emit("answerCall", {
       {
         "to": socketData.tempOffer['from'],
         "answer": answer.toMap(),
@@ -267,7 +268,7 @@ mixin SocketMediaService {
   }
 
   static void videoMutedSocket(bool status, SocketData socketData) {
-    socketData.socket.emit("videoMuted", {
+    socketData.getSocket.emit("videoMuted", {
       "to": socketData.myCurrentCallPartnerId,
       "status": status,
     });
@@ -275,7 +276,7 @@ mixin SocketMediaService {
 
   static void endCallSocket(SocketData socketData) {
     socketData.hasSDP = false;
-    socketData.socket.emit("callEnd", {
+    socketData.getSocket.emit("callEnd", {
       "to": socketData.myCurrentCallPartnerId,
     });
     socketData.myCurrentCallPartnerId = "";
@@ -299,7 +300,13 @@ class SocketData {
   String partnerCurrentChatId = "";
   bool partnerHasSDP = false;
 
-  late Socket socket;
+  Socket? _socket;
+
+  Socket get getSocket => _socket!;
+
+  set setSocket(Socket? value) {
+    _socket = value;
+  }
 
   dynamic tempOffer;
 

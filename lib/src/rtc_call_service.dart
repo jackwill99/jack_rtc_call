@@ -47,8 +47,9 @@ class JackRTCCallService extends JackRTCData {
     /// ❌ Everytime you leave the chat conversation, dispose peer connection.
     await RTCConnections.dispose();
 
-    socketData.socket.disconnect();
-    socketData.socket.close();
+    socketData.getSocket.disconnect();
+    socketData.getSocket.close();
+    socketData.setSocket = null;
   }
 
   void connect() {

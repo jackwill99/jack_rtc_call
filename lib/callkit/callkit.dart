@@ -105,7 +105,7 @@ class CallKitVOIP {
 
             break;
           case Event.actionCallDecline:
-            socketData.socket.emit("declineCall", {
+            socketData.getSocket.emit("declineCall", {
               "to": callKitParams.extra?["callerId"],
             });
             callEnd();
