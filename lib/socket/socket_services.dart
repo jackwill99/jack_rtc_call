@@ -10,10 +10,8 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
 
   static void connectToServer({
     required String socketUrl,
-    required String myId,
     required SocketData socketData,
   }) {
-    socketData.myUserId = myId;
     socketData.socket = io(
       socketUrl,
       <String, dynamic>{
@@ -286,6 +284,8 @@ mixin SocketMediaService {
 
 class SocketData {
   // RxBool isConnect = false.obs;
+
+  late String socketUrl;
 
   late String myUserId;
 

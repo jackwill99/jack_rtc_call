@@ -21,10 +21,17 @@ class JackRTCCallService extends JackRTCData {
   /// }
   ///
   JackRTCCallService({
+    required String socketUrl,
+    required String myId,
     required Future<dynamic> Function() toCallingPage,
     required Function(RTCDataChannelMessage message) onListenMessage,
     required void Function() onListenPartnerCallEnded,
   }) {
+    socketData.myUserId = myId;
+    socketData.socketUrl = socketUrl;
+    SocketServices.connectToServer(
+        socketUrl: socketUrl, socketData: socketData);
+    RTCMediaService.init();
     RTCMediaService.onListenMessage = (message) {
       onListenMessage(message);
     };
@@ -41,11 +48,14 @@ class JackRTCCallService extends JackRTCData {
     await RTCConnections.dispose();
 
     socketData.socket.disconnect();
+    socketData.socket.close();
   }
 
-  void connect({required String socketUrl, required String myId}) {
+  void connect() {
     SocketServices.connectToServer(
-        socketUrl: socketUrl, myId: myId, socketData: socketData);
+      socketUrl: socketData.socketUrl,
+      socketData: socketData,
+    );
     RTCMediaService.init();
   }
 
