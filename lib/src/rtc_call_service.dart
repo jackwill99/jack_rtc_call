@@ -11,6 +11,8 @@ import 'package:jack_rtc_call/web_rtc/media_services.dart';
 import 'package:jack_rtc_call/web_rtc/rtc.dart';
 
 class JackRTCCallService extends JackRTCData {
+  final socketData = SocketData();
+
   ///
   /// `toCallingPage` is route for calling page
   ///
@@ -29,8 +31,8 @@ class JackRTCCallService extends JackRTCData {
   }) {
     socketData.myUserId = myId;
     socketData.socketUrl = socketUrl;
-    SocketServices.connectToServer(
-        socketUrl: socketUrl, socketData: socketData);
+    socketData.settingSocket(socketData);
+    SocketServices.connectToServer(socketData: socketData);
     RTCMediaService.init();
     RTCMediaService.onListenMessage = (message) {
       onListenMessage(message);
@@ -52,13 +54,13 @@ class JackRTCCallService extends JackRTCData {
     socketData.setSocket = null;
   }
 
-  void connect() {
-    SocketServices.connectToServer(
-      socketUrl: socketData.socketUrl,
-      socketData: socketData,
-    );
-    RTCMediaService.init();
-  }
+  // void connect() {
+  //   SocketServices.connectToServer(
+  //     socketUrl: socketData.socketUrl,
+  //     socketData: socketData,
+  //   );
+  //   RTCMediaService.init();
+  // }
 
   // ------------------------ Media Services Section ---------------------
 
@@ -162,5 +164,19 @@ class JackRTCCallService extends JackRTCData {
       /// ❌ Everytime you leave the chat conversation, dispose peer connection.
       await RTCConnections.dispose();
     }
+  }
+
+  /// -------------
+
+  /// To change the chat id that I want
+  void setMyCurrentChatId(String value) {
+    socketData.myCurrentChatId = value;
+  }
+
+  String get getMyCurrentChatId => socketData.myCurrentChatId;
+
+  /// To set status that have I SDP
+  void setMyOwnSDP(bool value) {
+    socketData.hasSDP = value;
   }
 }

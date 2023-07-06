@@ -9,19 +9,10 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
   SocketServices._();
 
   static void connectToServer({
-    required String socketUrl,
     required SocketData socketData,
   }) {
-    final socket = io(
-      socketUrl,
-      <String, dynamic>{
-        'transports': ['websocket'],
-        //ToDo ! Own ID
-        'query': {"userId": socketData.myUserId},
-        // 'path': '/sockets.io',
-      },
-    );
-    socketData.setSocket = socket;
+    debugPrint(
+        "----------------------connecting to server----------------------");
     socketData.getSocket.connect();
     socketData.getSocket.on("connect", (data) {
       // isConnect = true;
@@ -306,6 +297,21 @@ class SocketData {
 
   set setSocket(Socket? value) {
     _socket = value;
+    debugPrint(
+        "----------------------setting socket is success----------------------");
+  }
+
+  void settingSocket(SocketData socketData) {
+    final socket = io(
+      socketData.socketUrl,
+      <String, dynamic>{
+        'transports': ['websocket'],
+        //ToDo ! Own ID
+        'query': {"userId": socketData.myUserId},
+        // 'path': '/sockets.io',
+      },
+    );
+    socketData.setSocket = socket;
   }
 
   dynamic tempOffer;
