@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_use_of_protected_member
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jack_rtc_call/callkit/callkit.dart';
@@ -217,8 +219,12 @@ mixin SocketMediaService {
 
     socketData.getSocket.on("declineCallNotify", (data) async {
       JackRTCCallService.onListenDeclineCall?.call();
-      // JackLocalNotificationApi.showNotification(title: "Called Declined");
     });
+
+    socketData.getSocket.on("callCancelNotify", (data) async {
+      JackRTCCallService.onListenCancelCall?.call();
+    });
+
     socketData.getSocket.on("missedCallNotify", (data) async {});
     socketData.getSocket.on("videoMutedNotify", (data) async {
       RTCMediaService.isPartnerVideoOpen.add(data['status']);
@@ -297,6 +303,14 @@ mixin SocketMediaService {
       "to": socketData.myCurrentCallPartnerId,
     });
     socketData.myCurrentCallPartnerId = "";
+  }
+
+  static void cancelCallSocket() {
+    final socketData = GetIt.instance<SocketData>();
+
+    socketData.getSocket.emit("callCancel", {
+      "to": socketData.myCurrentChatId,
+    });
   }
 }
 

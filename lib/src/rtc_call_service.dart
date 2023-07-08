@@ -29,8 +29,6 @@ class JackRTCCallService extends JackRTCData {
     required String socketUrl,
     required String myId,
     required Future<dynamic> Function() toCallingPage,
-    required Function(RTCDataChannelMessage message) onListenMessage,
-    required void Function() onListenPartnerCallEnded,
   }) {
     if (!GetIt.I.isRegistered<SocketData>()) {
       debugPrint(
@@ -45,10 +43,7 @@ class JackRTCCallService extends JackRTCData {
     socketData.settingSocket();
     SocketServices.connectToServer();
     RTCMediaService.init();
-    RTCMediaService.onListenMessage = (message) {
-      onListenMessage(message);
-    };
-    RTCMediaService.onPartnerCallEnded = onListenPartnerCallEnded;
+
     toRoute = toCallingPage;
     CallKitVOIP.toRoute = toCallingPage;
     CallKitVOIP.listenerEvent();
@@ -128,11 +123,15 @@ class JackRTCCallService extends JackRTCData {
     }
   }
 
-  Future<void> navigationCallingPage() async {
-    CallKitVOIP.checkAndNavigationCallingPage();
+  Future<void> cancelCall() async {
+    SocketMediaService.cancelCallSocket();
   }
 
+  @protected
   static FutureOr<void> Function()? onListenDeclineCall;
+
+  @protected
+  static FutureOr<void> Function()? onListenCancelCall;
 
   void setAudio(bool status) {
     RTCMediaService.setAudioStatus(status);
@@ -194,8 +193,11 @@ class JackRTCCallService extends JackRTCData {
     }
   }
 
-  void listenMiscData({
+  void onListenMiscState({
+    required Function(RTCDataChannelMessage message) onListenMessage,
+    required void Function() onListenPartnerCallEnded,
     required void Function(bool isOnline, String? id) onListenOnline,
+    required FutureOr<void> Function() onListenPartnerCallCancel,
     required FutureOr<void> Function() onListenDeclineCall,
     required void Function({
       String? callerName,
@@ -203,6 +205,14 @@ class JackRTCCallService extends JackRTCData {
       String? avatar,
     }) onListenCallerInfo,
   }) {
+    RTCMediaService.onListenMessage = (message) {
+      onListenMessage(message);
+    };
+
+    RTCMediaService.onPartnerCallEnded = onListenPartnerCallEnded;
+
+    JackRTCCallService.onListenCancelCall = onListenPartnerCallCancel;
+
     MiscSocketService.isOnline.listen((value) {
       onListenOnline(value, MiscSocketService.id);
     });
@@ -213,9 +223,9 @@ class JackRTCCallService extends JackRTCData {
         callHandler: MiscSocketService.callHandler,
         avatar: MiscSocketService.avatar,
       );
-
-      JackRTCCallService.onListenDeclineCall = onListenDeclineCall;
     });
+
+    JackRTCCallService.onListenDeclineCall = onListenDeclineCall;
   }
 
   /// -------------
