@@ -55,21 +55,22 @@ class RTCMediaService {
   static final isCallingMedia = BehaviorSubject<bool>(),
       isAudioOn = BehaviorSubject<bool>(),
       isVideoOn = BehaviorSubject<bool>(),
-      isFrontCamera = BehaviorSubject<bool>();
+      isFrontCamera = BehaviorSubject<bool>(),
+      isJoinedCallingMedia = BehaviorSubject<bool>.seeded(false);
   static final isPartnerVideoOpen = BehaviorSubject<bool>(),
       isSpeakerOn = BehaviorSubject<bool>();
 
   static Stream<(bool, bool, bool, bool, bool, bool)> get mediaStatus {
     return Rx.combineLatest6<bool, bool, bool, bool, bool, bool,
         (bool, bool, bool, bool, bool, bool)>(
-      isCallingMedia.stream,
+      isJoinedCallingMedia.stream,
       isAudioOn.stream,
       isVideoOn.stream,
       isFrontCamera.stream,
       isPartnerVideoOpen.stream,
       isSpeakerOn.stream,
       (
-        isCallingMedia,
+        isJoinedCallingMedia,
         isAudioOn,
         isVideoOn,
         isFrontCamera,
@@ -77,7 +78,7 @@ class RTCMediaService {
         isSpeakerOn,
       ) =>
           (
-        isCallingMedia,
+        isJoinedCallingMedia,
         isAudioOn,
         isVideoOn,
         isFrontCamera,
@@ -301,6 +302,7 @@ class RTCMediaService {
     socketData.myCurrentCallPartnerId = socketData.tempOffer['from'];
 
     isCallingMedia.add(true);
+    isJoinedCallingMedia.add(true);
 
     //* call socket
     await SocketMediaService.acceptCallSocket(answer);
@@ -327,6 +329,7 @@ class RTCMediaService {
     localRTCVideoRenderer.add(RTCVideoRenderer());
     remoteRTCVideoRenderer.add(RTCVideoRenderer());
     isCallingMedia.add(false);
+    isJoinedCallingMedia.add(false);
     await CallKitVOIP.callEnd();
   }
 
