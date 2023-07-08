@@ -50,7 +50,8 @@ class JackRTCCallService extends JackRTCData {
     };
     RTCMediaService.onPartnerCallEnded = onListenPartnerCallEnded;
     toRoute = toCallingPage;
-    CallKitVOIP.listenerEvent(toRoute: toCallingPage);
+    CallKitVOIP.toRoute = toCallingPage;
+    CallKitVOIP.listenerEvent();
   }
 
   // ------------------------ Connection and Disconnection ---------------------
@@ -125,6 +126,10 @@ class JackRTCCallService extends JackRTCData {
     if (isComesFromChat) {
       RTCConnections.checkAndReinitialize();
     }
+  }
+
+  Future<void> navigationCallingPage() async {
+    CallKitVOIP.checkAndNavigationCallingPage();
   }
 
   static FutureOr<void> Function()? onListenDeclineCall;

@@ -10,6 +10,8 @@ import 'package:uuid/uuid.dart';
 class CallKitVOIP {
   static String? _currentUuid;
   static late CallKitParams callKitParams;
+
+  static late Future<dynamic> Function() toRoute;
   CallKitVOIP._();
 
   /// `callerName` is the name of the caller to display
@@ -86,7 +88,6 @@ class CallKitVOIP {
   }
 
   static Future<void> listenerEvent({
-    required Future<dynamic> Function() toRoute,
     void Function(CallEvent)? callback,
   }) async {
     final socketData = GetIt.instance<SocketData>();
@@ -150,6 +151,7 @@ class CallKitVOIP {
     var currentCall = await _getCurrentCall();
     if (currentCall != null) {
       /// navigate to calling page
+      toRoute();
     }
   }
 
@@ -158,11 +160,11 @@ class CallKitVOIP {
     var calls = await FlutterCallkitIncoming.activeCalls();
     if (calls is List) {
       if (calls.isNotEmpty) {
-        print('DATA: $calls');
-        _currentUuid = calls[0]['id'];
-        return calls[0];
+        debugPrint('callDATA: $calls[0]');
+        if (_currentUuid == calls[0]['id']) {
+          return calls[0];
+        }
       } else {
-        _currentUuid = "";
         return null;
       }
     }

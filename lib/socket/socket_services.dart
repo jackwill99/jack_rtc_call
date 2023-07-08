@@ -216,7 +216,6 @@ mixin SocketMediaService {
     });
 
     socketData.getSocket.on("declineCallNotify", (data) async {
-      await CallKitVOIP.callEnd();
       JackRTCCallService.onListenDeclineCall?.call();
       // JackLocalNotificationApi.showNotification(title: "Called Declined");
     });
