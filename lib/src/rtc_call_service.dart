@@ -149,7 +149,7 @@ class JackRTCCallService extends JackRTCData {
     await RTCMediaService.setSpeakerStatus(status);
   }
 
-  /// `isCallingMedia, isAudioOn, isVideoOn, isFrontCamera, isPartnerVideoOpen, isSpeakerOn`
+  /// `isJoinedCallingMedia, isAudioOn, isVideoOn, isFrontCamera, isPartnerVideoOpen, isSpeakerOn`
   Stream<(bool, bool, bool, bool, bool, bool)> mediaStatus() {
     return RTCMediaService.mediaStatus;
   }
