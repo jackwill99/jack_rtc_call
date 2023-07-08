@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jack_rtc_call/callkit/callkit.dart';
+import 'package:jack_rtc_call/jack_rtc_call.dart';
 import 'package:jack_rtc_call/socket/misc_socket.dart';
 import 'package:jack_rtc_call/web_rtc/rtc.dart';
 import 'package:jack_rtc_call/web_rtc/media_services.dart';
@@ -216,6 +216,8 @@ mixin SocketMediaService {
     });
 
     socketData.getSocket.on("declineCallNotify", (data) async {
+      await CallKitVOIP.callEnd();
+      JackRTCCallService.onListenDeclineCall?.call();
       // JackLocalNotificationApi.showNotification(title: "Called Declined");
     });
     socketData.getSocket.on("missedCallNotify", (data) async {});

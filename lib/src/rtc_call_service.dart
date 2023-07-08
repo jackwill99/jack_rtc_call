@@ -3,6 +3,8 @@
 // https://github.com/jackwill99
 // This file is created for only public methods of class
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:get_it/get_it.dart';
@@ -125,6 +127,8 @@ class JackRTCCallService extends JackRTCData {
     }
   }
 
+  static FutureOr<void> Function()? onListenDeclineCall;
+
   void setAudio(bool status) {
     RTCMediaService.setAudioStatus(status);
   }
@@ -185,8 +189,9 @@ class JackRTCCallService extends JackRTCData {
     }
   }
 
-  void listenMiscSocketData({
+  void listenMiscData({
     required void Function(bool isOnline, String? id) onListenOnline,
+    required FutureOr<void> Function() onListenDeclineCall,
     required void Function({
       String? callerName,
       String? callHandler,
@@ -203,6 +208,8 @@ class JackRTCCallService extends JackRTCData {
         callHandler: MiscSocketService.callHandler,
         avatar: MiscSocketService.avatar,
       );
+
+      JackRTCCallService.onListenDeclineCall = onListenDeclineCall;
     });
   }
 
