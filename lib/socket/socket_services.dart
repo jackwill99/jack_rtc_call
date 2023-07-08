@@ -222,6 +222,7 @@ mixin SocketMediaService {
     });
 
     socketData.getSocket.on("callCancelNotify", (data) async {
+      await CallKitVOIP.callEnd();
       JackRTCCallService.onListenCancelCall?.call();
     });
 
