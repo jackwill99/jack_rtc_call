@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jack_rtc_call/callkit/callkit.dart';
+import 'package:jack_rtc_call/socket/misc_socket.dart';
 import 'package:jack_rtc_call/web_rtc/rtc.dart';
 import 'package:jack_rtc_call/web_rtc/media_services.dart';
 import 'package:socket_io_client/socket_io_client.dart';
@@ -98,6 +99,10 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
 
     SocketDataChannelService.initializeDataChannel();
     SocketMediaService.initializeMedia();
+
+    /// Miscellaneous socket service
+
+    MiscSocketService.initialize();
   }
 
   ///-----------------------------------------------------
@@ -198,6 +203,10 @@ mixin SocketMediaService {
         callerHandle: data['callerHandle'],
         callerAvatar: data['callerAvatar'],
       );
+
+      MiscSocketService.callHandler = data['callerHandle'];
+      MiscSocketService.avatar = data['callerAvatar'];
+      MiscSocketService.callerName.add(data['callerName']);
     });
 
     socketData.getSocket.on("callEndNotify", (data) {

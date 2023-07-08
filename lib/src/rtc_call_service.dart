@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jack_rtc_call/callkit/callkit.dart';
+import 'package:jack_rtc_call/socket/misc_socket.dart';
 import 'package:jack_rtc_call/socket/socket_services.dart';
 import 'package:jack_rtc_call/src/jack_rtc_data.dart';
 import 'package:jack_rtc_call/web_rtc/media_services.dart';
@@ -154,8 +155,16 @@ class JackRTCCallService extends JackRTCData {
     String? callerAvatar,
     int? duration,
     bool isVideo = false,
-  }) async =>
-      CallKitVOIP.inComingCall;
+  }) async {
+    await CallKitVOIP.inComingCall(
+      callerName: callerName,
+      callerId: callerId,
+      callerAvatar: callerAvatar,
+      callerHandle: callerAvatar,
+      duration: duration,
+      isVideo: isVideo,
+    );
+  }
 
   // ------------------------ Other Miscellaneous actions ---------------------
 
@@ -174,6 +183,27 @@ class JackRTCCallService extends JackRTCData {
       /// ❌ Everytime you leave the chat conversation, dispose peer connection.
       await RTCConnections.dispose();
     }
+  }
+
+  void listenMiscSocketData({
+    required void Function(bool isOnline, String? id) onListenOnline,
+    required void Function({
+      String? callerName,
+      String? callHandler,
+      String? avatar,
+    }) onListenCallerInfo,
+  }) {
+    MiscSocketService.isOnline.listen((value) {
+      onListenOnline(value, MiscSocketService.id);
+    });
+
+    MiscSocketService.callerName.listen((value) {
+      onListenCallerInfo(
+        callerName: value,
+        callHandler: MiscSocketService.callHandler,
+        avatar: MiscSocketService.avatar,
+      );
+    });
   }
 
   /// -------------
