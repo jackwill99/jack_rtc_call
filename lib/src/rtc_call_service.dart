@@ -167,6 +167,7 @@ class JackRTCCallService extends JackRTCData {
   }) async {
     if (onCallDeepLink != null) {
       CallKitVOIP.onCallDeepLink = onCallDeepLink;
+      await CallKitVOIP.listenerEvent();
     }
     await CallKitVOIP.inComingCall(
       callerName: callerName,
