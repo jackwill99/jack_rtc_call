@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
@@ -12,6 +14,9 @@ class CallKitVOIP {
   static late CallKitParams callKitParams;
 
   static late Future<dynamic> Function() toRoute;
+
+  static FutureOr<void> Function()? onCallDeepLink;
+
   CallKitVOIP._();
 
   /// `callerName` is the name of the caller to display
@@ -32,6 +37,7 @@ class CallKitVOIP {
     String? callerAvatar,
     int? duration,
     bool isVideo = false,
+    void Function()? onCallDeepLink,
   }) async {
     _currentUuid = const Uuid().v4();
     debugPrint(
@@ -100,16 +106,29 @@ class CallKitVOIP {
                 "----------------------incoming call----------------------");
             break;
           case Event.actionCallAccept:
-            RTCMediaService.acceptCall(toRoute: toRoute);
-            if (_currentUuid != null) {
-              await FlutterCallkitIncoming.setCallConnected(_currentUuid!);
+            debugPrint(
+                "----------------------accept call-----${CallKitVOIP.onCallDeepLink != null}-----------------");
+            if (CallKitVOIP.onCallDeepLink != null) {
+              CallKitVOIP.onCallDeepLink?.call();
+              debugPrint("onCalldeeplink called");
+              CallKitVOIP.onCallDeepLink = null;
+            } else {
+              RTCMediaService.acceptCall(toRoute: toRoute);
+              if (_currentUuid != null) {
+                await FlutterCallkitIncoming.setCallConnected(_currentUuid!);
+              }
             }
 
             break;
           case Event.actionCallDecline:
-            socketData.getSocket.emit("declineCall", {
-              "to": callKitParams.extra?["callerId"],
-            });
+            try {
+              socketData.getSocket.emit("declineCall", {
+                "to": callKitParams.extra?["callerId"],
+              });
+            } catch (_) {
+              debugPrint(
+                  "----------------------socket can't emit in background. you need to establish socket----------------------");
+            }
             callEnd();
             break;
           case Event.actionCallTimeout:

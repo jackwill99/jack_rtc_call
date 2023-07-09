@@ -156,14 +156,18 @@ class JackRTCCallService extends JackRTCData {
 
   // ------------------------ CallKit Section ---------------------
 
-  Future<void> showIncomingCall({
+  static Future<void> showIncomingCall({
     required String callerName,
     required String callerId,
     String? callerHandle,
     String? callerAvatar,
     int? duration,
     bool isVideo = false,
+    void Function()? onCallDeepLink,
   }) async {
+    if (onCallDeepLink != null) {
+      CallKitVOIP.onCallDeepLink = onCallDeepLink;
+    }
     await CallKitVOIP.inComingCall(
       callerName: callerName,
       callerId: callerId,
@@ -171,6 +175,7 @@ class JackRTCCallService extends JackRTCData {
       callerHandle: callerAvatar,
       duration: duration,
       isVideo: isVideo,
+      onCallDeepLink: onCallDeepLink,
     );
   }
 
