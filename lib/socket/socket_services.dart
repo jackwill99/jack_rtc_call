@@ -12,7 +12,7 @@ import 'package:socket_io_client/socket_io_client.dart';
 class SocketServices with SocketDataChannelService, SocketMediaService {
   SocketServices._();
 
-  static void connectToServer(bool redirectToCallingPage) {
+  static void connectToServer(dynamic redirectToOffer) {
     final socketData = GetIt.instance<SocketData>();
 
     debugPrint(
@@ -22,8 +22,11 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
       // isConnect = true;
       print('Connected');
       _initialize();
-      if (redirectToCallingPage) {
-        RTCMediaService.acceptCall(toRoute: CallKitVOIP.toRoute);
+      if (redirectToOffer != null) {
+        RTCMediaService.acceptCall(
+          toRoute: CallKitVOIP.toRoute,
+          offer: redirectToOffer,
+        );
       }
     });
 

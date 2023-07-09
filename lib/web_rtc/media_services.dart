@@ -225,14 +225,15 @@ class RTCMediaService {
   }
 
   /// You should return true when not ending the media calling
-  static Future<void> mediaCall(
-      {required bool videoOn,
-      required Future<dynamic> Function() toRoute,
-      required String callerName,
-      String? callerHandle,
-      String? callerAvatar,
-      required}) async {
+  static Future<dynamic> mediaCall({
+    required bool videoOn,
+    required Future<dynamic> Function() toRoute,
+    required String callerName,
+    String? callerHandle,
+    String? callerAvatar,
+  }) async {
     final socketData = GetIt.instance<SocketData>();
+    RTCSessionDescription? offer;
 
     debugPrint(
         "---------------------${isCallingMedia.value}---in media call-------------------");
@@ -242,7 +243,7 @@ class RTCMediaService {
 
       await setupMediaCall(videoOn: videoOn);
 
-      final offer = await onListenMessageService(
+      offer = await onListenMessageService(
         onMessage: (message) {
           onListenMessage(message);
         },
@@ -261,10 +262,13 @@ class RTCMediaService {
       print("Create Offer video ======================");
     }
     toRoute();
+
+    return offer?.toMap();
   }
 
   static Future<void> acceptCall({
     required Future<dynamic> Function() toRoute,
+    dynamic offer,
   }) async {
     final socketData = GetIt.instance<SocketData>();
 
@@ -282,24 +286,26 @@ class RTCMediaService {
       };
     };
 
+    final partnerOffer = offer ?? socketData.tempOffer;
+
     /// media call
     await setupMediaCall(
-      videoOn: socketData.tempOffer["video"],
+      videoOn: partnerOffer["video"],
     );
 
     SocketMediaService.videoMutedSocket(
-      socketData.tempOffer["video"],
+      partnerOffer["video"],
     );
 
     // create SDP answer
     final answer = await RTCConnections.createAnswer(
-        offerSDP: socketData.tempOffer['offer']["sdp"],
-        type: socketData.tempOffer['offer']["type"]);
+        offerSDP: partnerOffer['offer']["sdp"],
+        type: partnerOffer['offer']["type"]);
 
     socketData.hasSDP = true;
     socketData.partnerHasSDP = true;
 
-    socketData.myCurrentCallPartnerId = socketData.tempOffer['from'];
+    socketData.myCurrentCallPartnerId = partnerOffer['from'];
 
     isCallingMedia.add(true);
     isJoinedCallingMedia.add(true);
@@ -309,7 +315,7 @@ class RTCMediaService {
 
     toRoute();
 
-    if (socketData.tempOffer["video"]) {
+    if (partnerOffer["video"]) {
       setSpeakerStatus(true);
     }
   }

@@ -16,7 +16,7 @@ import 'package:jack_rtc_call/web_rtc/media_services.dart';
 import 'package:jack_rtc_call/web_rtc/rtc.dart';
 
 class JackRTCCallService extends JackRTCData {
-  final bool redirectToCallingPage;
+  final dynamic redirectToOffer;
 
   ///
   /// `toCallingPage` is route for calling page
@@ -31,7 +31,7 @@ class JackRTCCallService extends JackRTCData {
     required String socketUrl,
     required String myId,
     required Future<dynamic> Function() toCallingPage,
-    required this.redirectToCallingPage,
+    required this.redirectToOffer,
   }) {
     if (!GetIt.I.isRegistered<SocketData>()) {
       debugPrint(
@@ -44,7 +44,7 @@ class JackRTCCallService extends JackRTCData {
     socketData.myUserId = myId;
     socketData.socketUrl = socketUrl;
     socketData.settingSocket();
-    SocketServices.connectToServer(redirectToCallingPage);
+    SocketServices.connectToServer(redirectToOffer);
     RTCMediaService.init();
 
     toRoute = toCallingPage;
@@ -94,13 +94,13 @@ class JackRTCCallService extends JackRTCData {
   ///
   /// `callerAvatar` works only in Android to show the avatar of the caller profile
   ///
-  Future<void> mediaCall({
+  Future<dynamic> mediaCall({
     required bool isVideoOn,
     required String callerName,
     String? callerHandle,
     String? callerAvatar,
   }) async {
-    await RTCMediaService.mediaCall(
+    return await RTCMediaService.mediaCall(
       videoOn: isVideoOn,
       toRoute: toRoute,
       callerName: callerName,
