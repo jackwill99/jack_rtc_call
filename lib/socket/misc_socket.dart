@@ -20,7 +20,7 @@ class MiscSocketService {
       debugPrint(
           "----------------------onlineStatusNotify $data----------------------");
       id = data['id'];
-      isOnline.add(data['status']);
+      isOnline.add(data['status'] == 0 ? false : true);
     });
   }
 }
