@@ -96,7 +96,12 @@ class CallKitVOIP {
   static Future<void> listenerEvent({
     void Function(CallEvent)? callback,
   }) async {
-    final socketData = GetIt.instance<SocketData>();
+    SocketData? socketData;
+    try {
+      socketData = GetIt.instance<SocketData>();
+    } catch (_) {
+      debugPrint("---------------------can't socketData----------------------");
+    }
 
     try {
       FlutterCallkitIncoming.onEvent.listen((event) async {
@@ -122,7 +127,7 @@ class CallKitVOIP {
             break;
           case Event.actionCallDecline:
             try {
-              socketData.getSocket.emit("declineCall", {
+              socketData?.getSocket.emit("declineCall", {
                 "to": callKitParams.extra?["callerId"],
               });
             } catch (_) {
