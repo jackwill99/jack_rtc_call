@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jack_rtc_call/socket/socket_services.dart';
 import 'package:rxdart/rxdart.dart';
@@ -16,6 +17,8 @@ class MiscSocketService {
     final socketData = GetIt.instance<SocketData>();
 
     socketData.getSocket.on("onlineStatusNotify", (data) async {
+      debugPrint(
+          "----------------------onlineStatusNotify $data----------------------");
       id = data['id'];
       isOnline.add(data['status']);
     });

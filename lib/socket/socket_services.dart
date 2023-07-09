@@ -309,6 +309,7 @@ mixin SocketMediaService {
   static void cancelCallSocket() {
     final socketData = GetIt.instance<SocketData>();
 
+    RTCMediaService.isCallingMedia.add(false);
     socketData.getSocket.emit("callCancel", {
       "to": socketData.myCurrentChatId,
     });
