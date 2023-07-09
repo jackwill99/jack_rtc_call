@@ -12,7 +12,7 @@ import 'package:socket_io_client/socket_io_client.dart';
 class SocketServices with SocketDataChannelService, SocketMediaService {
   SocketServices._();
 
-  static void connectToServer() {
+  static void connectToServer(bool redirectToCallingPage) {
     final socketData = GetIt.instance<SocketData>();
 
     debugPrint(
@@ -22,6 +22,9 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
       // isConnect = true;
       print('Connected');
       _initialize();
+      if (redirectToCallingPage) {
+        RTCMediaService.acceptCall(toRoute: CallKitVOIP.toRoute);
+      }
     });
 
     //! Main For Both Client 1 and Client 2 to request the start of chat

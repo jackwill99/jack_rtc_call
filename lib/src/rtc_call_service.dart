@@ -16,6 +16,8 @@ import 'package:jack_rtc_call/web_rtc/media_services.dart';
 import 'package:jack_rtc_call/web_rtc/rtc.dart';
 
 class JackRTCCallService extends JackRTCData {
+  final bool redirectToCallingPage;
+
   ///
   /// `toCallingPage` is route for calling page
   ///
@@ -29,6 +31,7 @@ class JackRTCCallService extends JackRTCData {
     required String socketUrl,
     required String myId,
     required Future<dynamic> Function() toCallingPage,
+    required this.redirectToCallingPage,
   }) {
     if (!GetIt.I.isRegistered<SocketData>()) {
       debugPrint(
@@ -41,7 +44,7 @@ class JackRTCCallService extends JackRTCData {
     socketData.myUserId = myId;
     socketData.socketUrl = socketUrl;
     socketData.settingSocket();
-    SocketServices.connectToServer();
+    SocketServices.connectToServer(redirectToCallingPage);
     RTCMediaService.init();
 
     toRoute = toCallingPage;

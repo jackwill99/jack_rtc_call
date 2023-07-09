@@ -54,7 +54,7 @@ class CallKitVOIP {
       textDecline: 'Decline',
       missedCallNotification: const NotificationParams(
         showNotification: true,
-        isShowCallback: true,
+        isShowCallback: false,
         subtitle: 'Missed TeleMed call',
         callbackText: 'Call back TeleMed',
       ),
