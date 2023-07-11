@@ -3,9 +3,9 @@
 // https://github.com/jackwill99
 // This file is created for only public attributes of class
 
-import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:jack_rtc_call/web_rtc/media_services.dart';
-import 'package:rxdart/rxdart.dart';
+import "package:flutter_webrtc/flutter_webrtc.dart";
+import "package:jack_rtc_call/src/web_rtc/media_services.dart";
+import "package:rxdart/rxdart.dart";
 
 class JackRTCData {
   late Future<dynamic> Function() toRoute;

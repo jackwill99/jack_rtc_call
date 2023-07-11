@@ -3,9 +3,9 @@
 // https://github.com/jackwill99
 //
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:jack_rtc_call/socket/socket_services.dart';
+import "package:flutter/foundation.dart";
+import "package:flutter_webrtc/flutter_webrtc.dart";
+import "package:jack_rtc_call/src/socket/socket_services.dart";
 
 @protected
 class RTCConnections {
@@ -38,10 +38,10 @@ class RTCConnections {
   static Future<RTCPeerConnection> setupPeerConnection() async {
     // create peer connection
     _rtcPeerConnection = await createPeerConnection({
-      /// TODO take params for the server config
-      'iceServers': [
+      // TODO(jackwill): take params for the server config
+      "iceServers": [
         {
-          'urls': "stun:stun.telemed.sabahna.com:8443"
+          "urls": "stun:stun.telemed.sabahna.com:8443"
           //   'stun:stun1.l.google.com:19302',
         },
         {
@@ -52,9 +52,10 @@ class RTCConnections {
       ]
     });
     _rtcPeerConnection?.onIceCandidate =
-        (RTCIceCandidate candidate) => rtcIceCadidates.add(candidate);
+        (candidate) => rtcIceCadidates.add(candidate);
     debugPrint(
-        "----------------------successfully set up Web RTC Open Connection----------------------");
+      "----------------------successfully set up Web RTC Open Connection----------------------",
+    );
 
     _rtcPeerConnection!.onSignalingState = (state) {
       debugPrint("-----------signaling-----------$state----------------------");
@@ -62,7 +63,8 @@ class RTCConnections {
 
     _rtcPeerConnection!.onConnectionState = (state) {
       debugPrint(
-          "------connection----------------$state----------------------");
+        "------connection----------------$state----------------------",
+      );
     };
     return _rtcPeerConnection!;
   }
@@ -72,11 +74,11 @@ class RTCConnections {
   /// Offer is generated for Client 1 and send this offer to Client 2.
   static Future<RTCSessionDescription> createOffer() async {
     // listen for local iceCandidate and add it to the list of IceCandidate
-    _rtcPeerConnection!.onIceCandidate = (RTCIceCandidate candidate) =>
-        RTCConnections.rtcIceCadidates.add(candidate);
+    _rtcPeerConnection!.onIceCandidate =
+        (candidate) => RTCConnections.rtcIceCadidates.add(candidate);
 
     // create SDP Offer
-    RTCSessionDescription offer = await _rtcPeerConnection!.createOffer();
+    final RTCSessionDescription offer = await _rtcPeerConnection!.createOffer();
 
     // set SDP offer as localDescription for peerConnection
     await _rtcPeerConnection!.setLocalDescription(offer);
@@ -127,10 +129,11 @@ class RTCConnections {
     );
 
     // create SDP answer
-    RTCSessionDescription answer = await _rtcPeerConnection!.createAnswer();
+    final RTCSessionDescription answer =
+        await _rtcPeerConnection!.createAnswer();
 
     // set SDP answer as localDescription for peerConnection
-    _rtcPeerConnection!.setLocalDescription(answer);
+    await _rtcPeerConnection!.setLocalDescription(answer);
 
     return answer;
   }
@@ -139,17 +142,19 @@ class RTCConnections {
   /// Add IceCandidates of Client 1 in your peer connection.
   ///
   /// And now you are successfully connected 🚀
-  static void addCandidates({
+  static Future<void> addCandidates({
     required String candidate,
     required String sdpMid,
     required int sdpMLineIndex,
   }) async {
     //* It's a Future but I don't want to wait
-    _rtcPeerConnection!.addCandidate(RTCIceCandidate(
-      candidate,
-      sdpMid,
-      sdpMLineIndex,
-    ));
+    await _rtcPeerConnection!.addCandidate(
+      RTCIceCandidate(
+        candidate,
+        sdpMid,
+        sdpMLineIndex,
+      ),
+    );
   }
 
   /// ## ❌ Everytime you leave the chat conversation, dispose peer connection.
@@ -159,7 +164,8 @@ class RTCConnections {
     _rtcPeerConnection = null;
     rtcIceCadidates.clear();
     debugPrint(
-        "----------------------Closed Web RTC Connection----------------------");
+      "----------------------Closed Web RTC Connection----------------------",
+    );
   }
 
   /// Restart and re-initialize the peer connections
@@ -169,7 +175,8 @@ class RTCConnections {
     /// ✅ Everytime you want to start communication, open connection
     await setupPeerConnection();
     debugPrint(
-        "----------------------Ready to restart peer connection----------------------");
+      "----------------------Ready to restart peer connection----------------------",
+    );
   }
 
   /// Check and ReInitialize peer connections

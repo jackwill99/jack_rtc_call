@@ -3,16 +3,18 @@
 // https://github.com/jackwill99
 //
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
+// ignore_for_file: avoid_positional_boolean_parameters
+
+import "package:flutter/foundation.dart";
+import "package:flutter/material.dart";
+import "package:flutter_webrtc/flutter_webrtc.dart";
 // ignore: implementation_imports
-import 'package:flutter_webrtc/src/native/factory_impl.dart' as Navigator;
-import 'package:get_it/get_it.dart';
-import 'package:jack_rtc_call/callkit/callkit.dart';
-import 'package:jack_rtc_call/socket/socket_services.dart';
-import 'package:jack_rtc_call/web_rtc/rtc.dart';
-import 'package:rxdart/rxdart.dart';
+import "package:flutter_webrtc/src/native/factory_impl.dart" as Navigator;
+import "package:get_it/get_it.dart";
+import "package:jack_rtc_call/src/callkit/callkit.dart";
+import "package:jack_rtc_call/src/socket/socket_services.dart";
+import "package:jack_rtc_call/src/web_rtc/rtc_base.dart";
+import "package:rxdart/rxdart.dart";
 
 @protected
 class RTCMediaService {
@@ -52,13 +54,13 @@ class RTCMediaService {
 
   /// --------------------------Media status--------------------------
 
-  static final isCallingMedia = BehaviorSubject<bool>(),
-      isAudioOn = BehaviorSubject<bool>(),
-      isVideoOn = BehaviorSubject<bool>(),
-      isFrontCamera = BehaviorSubject<bool>(),
-      isJoinedCallingMedia = BehaviorSubject<bool>.seeded(false);
-  static final isPartnerVideoOpen = BehaviorSubject<bool>(),
-      isSpeakerOn = BehaviorSubject<bool>();
+  static final isCallingMedia = BehaviorSubject<bool>();
+  static final isAudioOn = BehaviorSubject<bool>();
+  static final isVideoOn = BehaviorSubject<bool>();
+  static final isFrontCamera = BehaviorSubject<bool>();
+  static final isJoinedCallingMedia = BehaviorSubject<bool>.seeded(false);
+  static final isPartnerVideoOpen = BehaviorSubject<bool>();
+  static final isSpeakerOn = BehaviorSubject<bool>();
 
   static Stream<(bool, bool, bool, bool, bool, bool)> get mediaStatus {
     return Rx.combineLatest6<bool, bool, bool, bool, bool, bool,
@@ -104,11 +106,11 @@ class RTCMediaService {
     SocketMediaService.videoMutedSocket(status);
   }
 
-  static void switchCamera() {
+  static Future<void> switchCamera() async {
     isFrontCamera.add(!isFrontCamera.value);
     // switch camera
-    localStream.value!.getVideoTracks().forEach((track) {
-      Helper.switchCamera(track);
+    localStream.value!.getVideoTracks().forEach((track) async {
+      await Helper.switchCamera(track);
     });
   }
 
@@ -117,7 +119,8 @@ class RTCMediaService {
   ) async {
     isSpeakerOn.add(status);
     debugPrint(
-        "----------------------change speaker $status----------------------");
+      "----------------------change speaker $status----------------------",
+    );
 
     await Helper.setSpeakerphoneOn(status);
   }
@@ -131,11 +134,12 @@ class RTCMediaService {
     final socketData = GetIt.instance<SocketData>();
 
     debugPrint(
-        "----------send partner chat id------------${socketData.partnerCurrentChatId}----------------------");
+      "----------send partner chat id------------${socketData.partnerCurrentChatId}----------------------",
+    );
 
     if (socketData.myUserId == socketData.partnerCurrentChatId) {
       if (socketData.partnerHasSDP && socketData.hasSDP) {
-        print("in Chat -----------------------");
+        debugPrint("in Chat -----------------------");
       } else {
         final offer = await onListenMessageService(
           onMessage: (message) {
@@ -144,25 +148,25 @@ class RTCMediaService {
         );
 
         //! From Client 1
-        socketData.getSocket.emit('exchangeSDPOffer', {
+        socketData.socket.emit("exchangeSDPOffer", {
           "to": socketData.myCurrentChatId,
           "offer": offer.toMap(),
         });
-        print("Create Offer ======================");
+        debugPrint("Create Offer ======================");
       }
       if (RTCConnections.getRTCPeerConnection.connectionState !=
           RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         tempMessages.add(RTCDataChannelMessage(message));
       }
-      channel!.send(
+      await channel!.send(
         isBinary
             ? RTCDataChannelMessage.fromBinary(message)
             : RTCDataChannelMessage(message),
       );
       debugPrint("----------------------sent----------------------");
     } else {
-      print("Normal Mesage =======================");
-      //TODO send message to server
+      debugPrint("Normal Mesage =======================");
+      // TODO(jackwill): send message to server
     }
   }
 
@@ -188,28 +192,31 @@ class RTCMediaService {
       // final remoteRenderer = await remoteRTCVideoRenderer.first;
       // remoteRenderer.srcObject = event.streams[0];
       debugPrint(
-          "-----------streams in setupMediaCall-----------${remoteRTCVideoRenderer.value.srcObject}----------------------");
+        "-----------streams in setupMediaCall-----------${remoteRTCVideoRenderer.value.srcObject}----------------------",
+      );
       debugPrint(
-          "----------------------${event.streams[0]}----------------------");
+        "----------------------${event.streams[0]}----------------------",
+      );
     };
 
     // get localStream
     localStream.value = await Navigator.mediaDevices.getUserMedia({
-      'audio': audioOn,
-      'video': {
-        'facingMode': frontCameraOn ? 'user' : 'environment',
+      "audio": audioOn,
+      "video": {
+        "facingMode": frontCameraOn ? "user" : "environment",
       },
     });
 
     // To turn off the local stream video
     if (videoOn) {
       /// set to default speaker false
-      setSpeakerStatus(false);
+      await setSpeakerStatus(false);
       debugPrint(
-          "----------------------speaker with false default----------------------");
+        "----------------------speaker with false default----------------------",
+      );
     } else {
       setVideoStatus(false);
-      setSpeakerStatus(false);
+      await setSpeakerStatus(false);
     }
 
     // set source for local video renderer
@@ -236,7 +243,8 @@ class RTCMediaService {
     RTCSessionDescription? offer;
 
     debugPrint(
-        "---------------------${isCallingMedia.value}---in media call-------------------");
+      "---------------------${isCallingMedia.value}---in media call-------------------",
+    );
     if (!isCallingMedia.value) {
       isCallingMedia.add(true);
       await RTCConnections.restartConnections();
@@ -250,7 +258,7 @@ class RTCMediaService {
       );
 
       //! From Client 1
-      socketData.getSocket.emit('makeCall', {
+      socketData.socket.emit("makeCall", {
         "to": socketData.myCurrentChatId,
         "offer": offer.toMap(),
         "video": videoOn,
@@ -259,9 +267,9 @@ class RTCMediaService {
         "callerAvatar": callerAvatar,
       });
 
-      print("Create Offer video ======================");
+      debugPrint("Create Offer video ======================");
     }
-    toRoute();
+    await toRoute();
 
     return offer?.toMap();
   }
@@ -276,17 +284,17 @@ class RTCMediaService {
 
     // data channel
     RTCConnections.getRTCPeerConnection.onDataChannel = (ch) {
-      channel = ch;
-
-      ch.onDataChannelState = (state) {
-        onDataChannelService(state: state);
-      };
-      ch.onMessage = (message) {
-        onListenMessage(message);
-      };
+      channel = ch
+        ..onDataChannelState = (state) {
+          onDataChannelService(state: state);
+        }
+        ..onMessage = (message) {
+          onListenMessage(message);
+        };
     };
 
-    final partnerOffer = offer ?? socketData.tempOffer;
+    final partnerOffer =
+        (offer ?? socketData.tempOffer) as Map<String, dynamic>;
 
     /// media call
     await setupMediaCall(
@@ -299,13 +307,14 @@ class RTCMediaService {
 
     // create SDP answer
     final answer = await RTCConnections.createAnswer(
-        offerSDP: partnerOffer['offer']["sdp"],
-        type: partnerOffer['offer']["type"]);
+      offerSDP: (partnerOffer["offer"] as Map<String, dynamic>)["sdp"],
+      type: (partnerOffer["offer"] as Map<String, dynamic>)["type"],
+    );
 
-    socketData.hasSDP = true;
-    socketData.partnerHasSDP = true;
-
-    socketData.myCurrentCallPartnerId = partnerOffer['from'];
+    socketData
+      ..hasSDP = true
+      ..partnerHasSDP = true
+      ..myCurrentCallPartnerId = partnerOffer["from"];
 
     isCallingMedia.add(true);
     isJoinedCallingMedia.add(true);
@@ -313,10 +322,10 @@ class RTCMediaService {
     //* call socket
     await SocketMediaService.acceptCallSocket(answer);
 
-    toRoute();
+    await toRoute();
 
     if (partnerOffer["video"]) {
-      setSpeakerStatus(true);
+      await setSpeakerStatus(true);
     }
   }
 
@@ -326,7 +335,7 @@ class RTCMediaService {
     });
     await RTCMediaService.setSpeakerStatus(false);
 
-    localStream.value?.dispose();
+    await localStream.value?.dispose();
     localStream.value = null;
     localRTCVideoRenderer.value.srcObject = null;
     remoteRTCVideoRenderer.value.srcObject = null;
@@ -353,8 +362,9 @@ class RTCMediaService {
 
     // listening data channel
     channel = await RTCConnections.getRTCPeerConnection.createDataChannel(
-        'dataChannel-${123456}',
-        RTCDataChannelInit()..id = int.parse("123456"));
+      "dataChannel-${123456}",
+      RTCDataChannelInit()..id = int.parse("123456"),
+    );
     channel!.onDataChannelState = (state) {
       onDataChannelService(state: state);
     };
@@ -375,7 +385,7 @@ class RTCMediaService {
 
     if (state == RTCDataChannelState.RTCDataChannelOpen) {
       if (tempMessages.isNotEmpty) {
-        for (var i in tempMessages) {
+        for (final i in tempMessages) {
           await channel!.send(i);
         }
         tempMessages.clear();
@@ -383,10 +393,11 @@ class RTCMediaService {
     }
 
     debugPrint("---------------datachannel-------$state----------------------");
-    //TODO Need disconnect socket to notify the other client
+    // TODO(jackwill): Need disconnect socket to notify the other client
     if (state == RTCDataChannelState.RTCDataChannelClosed) {
-      socketData.partnerCurrentChatId = "";
-      socketData.partnerHasSDP = false;
+      socketData
+        ..partnerCurrentChatId = ""
+        ..partnerHasSDP = false;
 
       isCallingMedia.value = false;
       await RTCConnections.restartConnections();

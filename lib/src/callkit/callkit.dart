@@ -1,23 +1,22 @@
-import 'dart:async';
+import "dart:async";
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter_callkit_incoming/entities/entities.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
-import 'package:get_it/get_it.dart';
-import 'package:jack_rtc_call/socket/socket_services.dart';
-import 'package:jack_rtc_call/web_rtc/media_services.dart';
-import 'package:uuid/uuid.dart';
+import "package:flutter/foundation.dart";
+import "package:flutter_callkit_incoming/entities/entities.dart";
+import "package:flutter_callkit_incoming/flutter_callkit_incoming.dart";
+import "package:get_it/get_it.dart";
+import "package:jack_rtc_call/src/socket/socket_services.dart";
+import "package:jack_rtc_call/src/web_rtc/media_services.dart";
+import "package:uuid/uuid.dart";
 
 @protected
 class CallKitVOIP {
+  CallKitVOIP._();
   static String? _currentUuid;
   static late CallKitParams callKitParams;
 
   static late Future<dynamic> Function() toRoute;
 
   static FutureOr<void> Function()? onCallDeepLink;
-
-  CallKitVOIP._();
 
   /// `callerName` is the name of the caller to display
   ///
@@ -41,36 +40,36 @@ class CallKitVOIP {
   }) async {
     _currentUuid = const Uuid().v4();
     debugPrint(
-        "----------------------incomming call $_currentUuid----------------------");
+      "----------------------incomming call $_currentUuid----------------------",
+    );
     final params = CallKitParams(
       id: _currentUuid,
       nameCaller: callerName,
-      appName: 'Sabahna TeleMed',
+      appName: "Sabahna TeleMed",
       avatar: callerAvatar,
       handle: callerHandle,
       type: isVideo ? 1 : 0,
       duration: duration ?? 45000,
-      textAccept: 'Accept',
-      textDecline: 'Decline',
+      textAccept: "Accept",
+      textDecline: "Decline",
       missedCallNotification: const NotificationParams(
         showNotification: true,
         isShowCallback: false,
-        subtitle: 'Missed TeleMed call',
-        callbackText: 'Call back TeleMed',
+        subtitle: "Missed TeleMed call",
+        callbackText: "Call back TeleMed",
       ),
       extra: {
         "callerId": callerId,
       },
-      headers: null,
       android: AndroidParams(
         isCustomNotification: true,
         isShowLogo: false,
-        ringtonePath: 'sabahna_ringtone',
-        backgroundColor: '#0955fa',
-        backgroundUrl: callerAvatar ?? 'assets/test.png',
-        actionColor: '#4CAF50',
-        incomingCallNotificationChannelName: 'Incoming Call',
-        missedCallNotificationChannelName: 'Missed Call',
+        ringtonePath: "sabahna_ringtone",
+        backgroundColor: "#0955fa",
+        backgroundUrl: callerAvatar ?? "assets/test.png",
+        actionColor: "#4CAF50",
+        incomingCallNotificationChannelName: "Incoming Call",
+        missedCallNotificationChannelName: "Missed Call",
       ),
       ios: IOSParams(
         // iconName: 'CallKitLogo',
@@ -78,7 +77,7 @@ class CallKitVOIP {
         supportsVideo: isVideo,
         maximumCallGroups: 2,
         maximumCallsPerCallGroup: 1,
-        audioSessionMode: 'videoChat',
+        audioSessionMode: "videoChat",
         audioSessionActive: true,
         audioSessionPreferredSampleRate: 44100.0,
         audioSessionPreferredIOBufferDuration: 0.005,
@@ -86,7 +85,7 @@ class CallKitVOIP {
         supportsHolding: false,
         supportsGrouping: false,
         supportsUngrouping: false,
-        ringtonePath: 'sabahna_ringtone',
+        ringtonePath: "sabahna_ringtone",
       ),
     );
     await FlutterCallkitIncoming.showCallkitIncoming(params);
@@ -108,17 +107,19 @@ class CallKitVOIP {
         switch (event!.event) {
           case Event.actionCallIncoming:
             debugPrint(
-                "----------------------incoming call----------------------");
+              "----------------------incoming call----------------------",
+            );
             break;
           case Event.actionCallAccept:
             debugPrint(
-                "----------------------accept call-----${CallKitVOIP.onCallDeepLink != null}-----------------");
+              "----------------------accept call-----${CallKitVOIP.onCallDeepLink != null}-----------------",
+            );
             if (CallKitVOIP.onCallDeepLink != null) {
               CallKitVOIP.onCallDeepLink?.call();
               debugPrint("onCalldeeplink called");
               CallKitVOIP.onCallDeepLink = null;
             } else {
-              RTCMediaService.acceptCall(toRoute: toRoute);
+              await RTCMediaService.acceptCall(toRoute: toRoute);
               if (_currentUuid != null) {
                 await FlutterCallkitIncoming.setCallConnected(_currentUuid!);
               }
@@ -127,20 +128,23 @@ class CallKitVOIP {
             break;
           case Event.actionCallDecline:
             try {
-              socketData?.getSocket.emit("declineCall", {
+              socketData?.socket.emit("declineCall", {
                 "to": callKitParams.extra?["callerId"],
               });
             } catch (_) {
               debugPrint(
-                  "----------------------socket can't emit in background. you need to establish socket----------------------");
+                "----------------------socket can't emit in background. you need to establish socket----------------------",
+              );
             }
-            callEnd();
+            await callEnd();
             break;
           case Event.actionCallTimeout:
             debugPrint(
-                "----------------------missed called----------------------");
+              "----------------------missed called----------------------",
+            );
             await FlutterCallkitIncoming.showMissCallNotification(
-                callKitParams);
+              callKitParams,
+            );
 
             break;
           case Event.actionCallToggleMute:
@@ -159,7 +163,8 @@ class CallKitVOIP {
 
   static Future<void> callEnd() async {
     debugPrint(
-        "----------------------call end in call kit $_currentUuid----------------------");
+      "----------------------call end in call kit $_currentUuid----------------------",
+    );
     if (_currentUuid != null) {
       final i = await FlutterCallkitIncoming.activeCalls();
       await FlutterCallkitIncoming.endCall(_currentUuid!);
@@ -167,25 +172,26 @@ class CallKitVOIP {
       debugPrint("----------------------active call $i----------------------");
     } else {
       debugPrint(
-          "----------------------current id is null----------------------");
+        "----------------------current id is null----------------------",
+      );
     }
   }
 
   static Future<void> checkAndNavigationCallingPage() async {
-    var currentCall = await _getCurrentCall();
+    final currentCall = await _getCurrentCall();
     if (currentCall != null) {
       /// navigate to calling page
-      toRoute();
+      await toRoute();
     }
   }
 
   static Future<dynamic> _getCurrentCall() async {
     //check current call from pushkit if possible
-    var calls = await FlutterCallkitIncoming.activeCalls();
+    final calls = await FlutterCallkitIncoming.activeCalls();
     if (calls is List) {
       if (calls.isNotEmpty) {
-        debugPrint('callDATA: $calls[0]');
-        if (_currentUuid == calls[0]['id']) {
+        debugPrint("callDATA: $calls[0]");
+        if (_currentUuid == (calls[0] as Map<String, dynamic>)["id"]) {
           return calls[0];
         }
       } else {
@@ -196,10 +202,11 @@ class CallKitVOIP {
 
   /// Get device push token VoIP. iOS: return deviceToken, Android: Empty
   Future<String> getDevicePushTokenVoIP() async {
-    var devicePushTokenVoIP =
+    final devicePushTokenVoIP =
         await FlutterCallkitIncoming.getDevicePushTokenVoIP();
     debugPrint(
-        "----------------------Device Push Token VoIP----$devicePushTokenVoIP------------------");
+      "----------------------Device Push Token VoIP----$devicePushTokenVoIP------------------",
+    );
     return devicePushTokenVoIP;
   }
 }
