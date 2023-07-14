@@ -293,8 +293,13 @@ class RTCMediaService {
         };
     };
 
-    final partnerOffer =
-        (offer ?? socketData.tempOffer) as Map<String, dynamic>;
+    late Map<String, dynamic> partnerOffer;
+    if (offer == null) {
+      partnerOffer = socketData.tempOffer;
+    } else {
+      partnerOffer = offer;
+      socketData.tempOffer = offer;
+    }
 
     /// media call
     await setupMediaCall(

@@ -31,7 +31,7 @@ class JackRTCService extends JackRTCData {
     required String socketUrl,
     required String myId,
     required Future<dynamic> Function() toCallingPage,
-    required this.redirectToOffer,
+    required dynamic redirectToOffer,
   }) {
     if (!GetIt.I.isRegistered<SocketData>()) {
       debugPrint(
@@ -51,7 +51,7 @@ class JackRTCService extends JackRTCData {
     unawaited(CallKitVOIP.listenerEvent());
     CallKitVOIP.toRoute = toCallingPage;
   }
-  final dynamic redirectToOffer;
+  // final dynamic redirectToOffers;
 
   // ------------------------ Connection and Disconnection ---------------------
   Future<void> disconnect() async {
