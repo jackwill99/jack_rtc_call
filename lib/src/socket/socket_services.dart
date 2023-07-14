@@ -300,11 +300,12 @@ mixin SocketMediaService {
 
     // listen for Remote IceCandidate
     socketData.socket.on("exchangeIceNotify", (data) {
+      final ice =
+          ((data as Map<String, dynamic>)["ice"] as Map<String, dynamic>);
       RTCConnections.addCandidates(
-        candidate: (data as Map<String, Map<String, dynamic>>)["ice"]
-            ?["candidate"],
-        sdpMid: data["ice"]?["sdpMid"],
-        sdpMLineIndex: data["ice"]?["sdpMLineIndex"],
+        candidate: ice["candidate"],
+        sdpMid: ice["sdpMid"],
+        sdpMLineIndex: ice["sdpMLineIndex"],
       );
     });
 
