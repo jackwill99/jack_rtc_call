@@ -81,11 +81,11 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
     socketData.socket.on(
       "requestChatInfoNotify",
       (data) {
+        final partner =
+            (data as Map<String, dynamic>)["partner"] as Map<String, dynamic>;
         socketData
-          ..partnerCurrentChatId =
-              (data as Map<String, Map<String, dynamic>>)["partner"]
-                  ?["myCurrentChatId"]
-          ..partnerHasSDP = data["partner"]?["hasSDP"];
+          ..partnerCurrentChatId = partner["myCurrentChatId"]
+          ..partnerHasSDP = partner["hasSDP"];
         debugPrint(
           "----------------------my partner is chatting with ${socketData.partnerCurrentChatId}----------------------",
         );
@@ -108,14 +108,16 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
 
     //! For Both Client 1 and Client 2 to update their current chatting user
     socketData.socket.on("updatePartnerInfoNotify", (data) async {
+      final partner =
+          (data as Map<String, dynamic>)["partner"] as Map<String, dynamic>;
       debugPrint(
-        "----------------------update partner info notify------${(data as Map<String, Map<String, dynamic>>)['partner']?['myCurrentChatId']}----------------",
+        "----------------------update partner info notify------${partner['myCurrentChatId']}----------------",
       );
-      socketData.partnerCurrentChatId = data["partner"]?["myCurrentChatId"];
+      socketData.partnerCurrentChatId = partner["myCurrentChatId"];
       debugPrint(
         "----------updatePartnerInfoNotify------------my partner is chatting with ${socketData.partnerCurrentChatId}----------------------",
       );
-      socketData.partnerHasSDP = data["partner"]?["hasSDP"];
+      socketData.partnerHasSDP = partner["hasSDP"];
     });
 
     SocketDataChannelService.initializeDataChannel();
@@ -177,18 +179,22 @@ mixin SocketDataChannelService {
 
       // listen for Remote IceCandidate
       socketData.socket.on("exchangeIceNotify", (data) {
+        final ice =
+            (data as Map<String, dynamic>)["ice"] as Map<String, dynamic>;
+
         RTCConnections.addCandidates(
-          candidate: (data as Map<String, Map<String, dynamic>>)["ice"]
-              ?["candidate"],
-          sdpMid: data["ice"]?["sdpMid"],
-          sdpMLineIndex: data["ice"]?["sdpMLineIndex"],
+          candidate: ice["candidate"],
+          sdpMid: ice["sdpMid"],
+          sdpMLineIndex: ice["sdpMLineIndex"],
         );
       });
 
       // create SDP answer
+      final offer =
+          (data as Map<String, dynamic>)["offer"] as Map<String, dynamic>;
       final RTCSessionDescription answer = await RTCConnections.createAnswer(
-        offerSDP: (data as Map<String, Map<String, dynamic>>)["offer"]?["sdp"],
-        type: data["offer"]?["type"],
+        offerSDP: offer["sdp"],
+        type: offer["type"],
       );
 
       socketData
@@ -259,7 +265,7 @@ mixin SocketMediaService {
   }
 
   static Future<void> socketSDPAnswer({
-    required Map<String, Map<String, dynamic>> data,
+    required Map<String, dynamic> data,
     bool isVideo = false,
   }) async {
     final socketData = GetIt.instance<SocketData>();
@@ -268,9 +274,10 @@ mixin SocketMediaService {
       "---------------just-------${RTCConnections.getRTCPeerConnection.signalingState}----------------------",
     );
     try {
+      final answer = data["answer"] as Map<String, dynamic>;
       // set SDP answer as remoteDescription for peerConnection
       await RTCConnections.getRTCPeerConnection.setRemoteDescription(
-        RTCSessionDescription(data["answer"]?["sdp"], data["answer"]?["type"]),
+        RTCSessionDescription(answer["sdp"], answer["type"]),
       );
     } catch (_) {
       debugPrint(
