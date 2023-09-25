@@ -189,7 +189,7 @@ class JackRTCService extends JackRTCData {
       callerHandle: callerAvatar,
       duration: duration,
       isVideo: isVideo,
-      onCallDeepLink: onCallDeepLink,
+      // onCallDeepLink: onCallDeepLink,
     );
   }
 
