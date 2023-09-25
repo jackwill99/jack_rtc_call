@@ -11,14 +11,14 @@ class JackRTCData {
   late Future<dynamic> Function() toRoute;
 
   ValueStream<RTCVideoRenderer?> get onLocalRTCMedia {
-    return RTCMediaService.localRTCVideoRenderer.stream;
+    return RTCMediaService.I.localRTCVideoRenderer.stream;
   }
 
   ValueStream<MediaStream?> get onLocalStream {
-    return RTCMediaService.localStream.stream;
+    return RTCMediaService.I.localStream.stream;
   }
 
   ValueStream<RTCVideoRenderer?> get onRemoteRTCMedia {
-    return RTCMediaService.remoteRTCVideoRenderer.stream;
+    return RTCMediaService.I.remoteRTCVideoRenderer.stream;
   }
 }

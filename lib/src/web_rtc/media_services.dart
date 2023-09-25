@@ -3,44 +3,48 @@
 // https://github.com/jackwill99
 //
 
-// ignore_for_file: avoid_positional_boolean_parameters
-
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
-import "package:flutter_webrtc/flutter_webrtc.dart";
-// ignore: implementation_imports
+import "package:flutter_webrtc/flutter_webrtc.dart"; // ignore: implementation_imports
 import "package:flutter_webrtc/src/native/factory_impl.dart" as Navigator;
 import "package:get_it/get_it.dart";
 import "package:jack_rtc_call/src/callkit/callkit.dart";
+import "package:jack_rtc_call/src/socket/socket_media_services.dart";
 import "package:jack_rtc_call/src/socket/socket_services.dart";
 import "package:jack_rtc_call/src/web_rtc/rtc_base.dart";
 import "package:rxdart/rxdart.dart";
 
 @protected
 class RTCMediaService {
+  factory RTCMediaService() {
+    return I;
+  }
+
   RTCMediaService._();
+
+  static final RTCMediaService I = RTCMediaService._();
 
   // videoRenderer for localPeer
   //! check it that can listen when we set `srcObject`
-  static final localRTCVideoRenderer = BehaviorSubject<RTCVideoRenderer>();
+  final localRTCVideoRenderer = BehaviorSubject<RTCVideoRenderer>();
 
   // mediaStream for localPeer
-  static final localStream = BehaviorSubject<MediaStream?>();
+  final localStream = BehaviorSubject<MediaStream?>();
 
   // videoRenderer for remotePeer
-  static final remoteRTCVideoRenderer = BehaviorSubject<RTCVideoRenderer>();
+  final remoteRTCVideoRenderer = BehaviorSubject<RTCVideoRenderer>();
 
   /// data channel
-  static RTCDataChannel? channel;
+  RTCDataChannel? channel;
 
   // tempMessage
-  static final tempMessages = <RTCDataChannelMessage>[];
+  final tempMessages = <RTCDataChannelMessage>[];
 
-  static late Function(RTCDataChannelMessage message) onListenMessage;
+  late Function(RTCDataChannelMessage message) onListenMessage;
 
-  static late Function() onPartnerCallEnded;
+  late Function() onPartnerCallEnded;
 
-  static void init() {
+  void init() {
     localRTCVideoRenderer.add(RTCVideoRenderer());
     remoteRTCVideoRenderer.add(RTCVideoRenderer());
 
@@ -54,15 +58,15 @@ class RTCMediaService {
 
   /// --------------------------Media status--------------------------
 
-  static final isCallingMedia = BehaviorSubject<bool>();
-  static final isAudioOn = BehaviorSubject<bool>();
-  static final isVideoOn = BehaviorSubject<bool>();
-  static final isFrontCamera = BehaviorSubject<bool>();
-  static final isJoinedCallingMedia = BehaviorSubject<bool>.seeded(false);
-  static final isPartnerVideoOpen = BehaviorSubject<bool>();
-  static final isSpeakerOn = BehaviorSubject<bool>();
+  final isCallingMedia = BehaviorSubject<bool>();
+  final isAudioOn = BehaviorSubject<bool>();
+  final isVideoOn = BehaviorSubject<bool>();
+  final isFrontCamera = BehaviorSubject<bool>();
+  final isJoinedCallingMedia = BehaviorSubject<bool>.seeded(false);
+  final isPartnerVideoOpen = BehaviorSubject<bool>();
+  final isSpeakerOn = BehaviorSubject<bool>();
 
-  static Stream<(bool, bool, bool, bool, bool, bool)> get mediaStatus {
+  Stream<(bool, bool, bool, bool, bool, bool)> get mediaStatus {
     return Rx.combineLatest6<bool, bool, bool, bool, bool, bool,
         (bool, bool, bool, bool, bool, bool)>(
       isJoinedCallingMedia.stream,
@@ -90,7 +94,7 @@ class RTCMediaService {
     );
   }
 
-  static void setAudioStatus(bool status) {
+  void setAudioStatus({required bool status}) {
     isAudioOn.add(status);
     // enable or disable audio track
     localStream.value!.getAudioTracks().forEach((track) {
@@ -98,15 +102,15 @@ class RTCMediaService {
     });
   }
 
-  static void setVideoStatus(bool status) {
+  void setVideoStatus({required bool status}) {
     isVideoOn.add(status);
     localStream.value!.getVideoTracks().forEach((track) {
       track.enabled = status;
     });
-    SocketMediaService.videoMutedSocket(status);
+    SocketMediaService.I.videoMutedSocket(status: status);
   }
 
-  static Future<void> switchCamera() async {
+  Future<void> switchCamera() async {
     isFrontCamera.add(!isFrontCamera.value);
     // switch camera
     localStream.value!.getVideoTracks().forEach((track) async {
@@ -114,9 +118,9 @@ class RTCMediaService {
     });
   }
 
-  static Future<void> setSpeakerStatus(
-    bool status,
-  ) async {
+  Future<void> setSpeakerStatus({
+    required bool status,
+  }) async {
     isSpeakerOn.add(status);
     debugPrint(
       "----------------------change speaker $status----------------------",
@@ -127,7 +131,7 @@ class RTCMediaService {
 
   /// Data Channel
 
-  static Future<void> sendMessage({
+  Future<void> sendMessage({
     required dynamic message,
     bool isBinary = false,
   }) async {
@@ -172,7 +176,7 @@ class RTCMediaService {
 
   /// Media Call Action -----------------------
 
-  static Future<void> setupMediaCall({
+  Future<void> setupMediaCall({
     bool audioOn = true,
     bool videoOn = false,
     bool frontCameraOn = true,
@@ -210,13 +214,13 @@ class RTCMediaService {
     // To turn off the local stream video
     if (videoOn) {
       /// set to default speaker false
-      await setSpeakerStatus(false);
+      await setSpeakerStatus(status: false);
       debugPrint(
         "----------------------speaker with false default----------------------",
       );
     } else {
-      setVideoStatus(false);
-      await setSpeakerStatus(false);
+      setVideoStatus(status: false);
+      await setSpeakerStatus(status: false);
     }
 
     // set source for local video renderer
@@ -232,7 +236,7 @@ class RTCMediaService {
   }
 
   /// You should return true when not ending the media calling
-  static Future<dynamic> mediaCall({
+  Future<dynamic> mediaCall({
     required bool videoOn,
     required Future<dynamic> Function() toRoute,
     required String callerName,
@@ -274,7 +278,7 @@ class RTCMediaService {
     return offer?.toMap();
   }
 
-  static Future<void> acceptCall({
+  Future<void> acceptCall({
     required Future<dynamic> Function() toRoute,
     dynamic offer,
   }) async {
@@ -306,8 +310,8 @@ class RTCMediaService {
       videoOn: partnerOffer["video"],
     );
 
-    SocketMediaService.videoMutedSocket(
-      partnerOffer["video"],
+    SocketMediaService.I.videoMutedSocket(
+      status: partnerOffer["video"],
     );
 
     // create SDP answer
@@ -325,20 +329,20 @@ class RTCMediaService {
     isJoinedCallingMedia.add(true);
 
     //* call socket
-    await SocketMediaService.acceptCallSocket(answer);
+    await SocketMediaService.I.acceptCallSocket(answer);
 
     await toRoute();
 
     if (partnerOffer["video"]) {
-      await setSpeakerStatus(true);
+      await setSpeakerStatus(status: true);
     }
   }
 
-  static Future<void> callEnd() async {
+  Future<void> callEnd() async {
     localStream.value?.getTracks().forEach((track) async {
       await track.stop();
     });
-    await RTCMediaService.setSpeakerStatus(false);
+    await setSpeakerStatus(status: false);
 
     await localStream.value?.dispose();
     localStream.value = null;
@@ -350,17 +354,17 @@ class RTCMediaService {
     remoteRTCVideoRenderer.add(RTCVideoRenderer());
     isCallingMedia.add(false);
     isJoinedCallingMedia.add(false);
-    await CallKitVOIP.callEnd();
+    await CallKitVOIP.I.callEnd();
   }
 
-  static Future<void> _setUpInitialize() async {
+  Future<void> _setUpInitialize() async {
     await localRTCVideoRenderer.value.initialize();
     await remoteRTCVideoRenderer.value.initialize();
   }
 
   /// Listening Methods
 
-  static Future<RTCSessionDescription> onListenMessageService({
+  Future<RTCSessionDescription> onListenMessageService({
     required void Function(RTCDataChannelMessage message) onMessage,
   }) async {
     final socketData = GetIt.instance<SocketData>();
@@ -383,7 +387,7 @@ class RTCMediaService {
     return offer;
   }
 
-  static Future<void> onDataChannelService({
+  Future<void> onDataChannelService({
     required RTCDataChannelState state,
   }) async {
     final socketData = GetIt.instance<SocketData>();
@@ -397,8 +401,10 @@ class RTCMediaService {
       }
     }
 
-    debugPrint("---------------datachannel-------$state----------------------");
-    // TODO(jackwill): Need disconnect socket to notify the other client
+    debugPrint(
+      "---------------data channel-------$state----------------------",
+    );
+    // TODO(jack-will): Need disconnect socket to notify the other client
     if (state == RTCDataChannelState.RTCDataChannelClosed) {
       socketData
         ..partnerCurrentChatId = ""

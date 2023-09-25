@@ -183,7 +183,7 @@ class RTCConnections {
 
   /// Check and ReInitialize peer connections
   static Future<void> checkAndReinitialize() async {
-    SocketServices.initializeRequest();
+    SocketServices.I.initializeRequest();
     await RTCConnections.setupPeerConnection();
   }
 }

@@ -1,20 +1,24 @@
-// ignore_for_file: invalid_use_of_protected_member, avoid_positional_boolean_parameters
-
 import "dart:async";
 
 import "package:flutter/foundation.dart";
 import "package:get_it/get_it.dart";
-import "package:jack_rtc_call/jack_rtc_call.dart";
 import "package:jack_rtc_call/src/callkit/callkit.dart";
 import "package:jack_rtc_call/src/socket/misc_socket.dart";
+import "package:jack_rtc_call/src/socket/socket_data_channel_services.dart";
+import "package:jack_rtc_call/src/socket/socket_media_services.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
-import "package:jack_rtc_call/src/web_rtc/rtc_base.dart";
 import "package:socket_io_client/socket_io_client.dart";
 
-class SocketServices with SocketDataChannelService, SocketMediaService {
+class SocketServices {
+  factory SocketServices() {
+    return I;
+  }
+
   SocketServices._();
 
-  static void connectToServer(dynamic redirectToOffer) {
+  static final SocketServices I = SocketServices._();
+
+  void connectToServer(dynamic redirectToOffer) {
     final socketData = GetIt.instance<SocketData>();
 
     debugPrint(
@@ -27,8 +31,8 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
       _initialize();
       if (redirectToOffer != null) {
         unawaited(
-          RTCMediaService.acceptCall(
-            toRoute: CallKitVOIP.toRoute,
+          RTCMediaService.I.acceptCall(
+            toRoute: CallKitVOIP.I.toRoute,
             offer: redirectToOffer,
           ),
         );
@@ -56,7 +60,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
     );
   }
 
-  static void initializeRequest() {
+  void initializeRequest() {
     final socketData = GetIt.instance<SocketData>();
 
     debugPrint(
@@ -75,7 +79,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
   ///
   /// 📲 Assume like that flow ...
   ///
-  static void _initialize() {
+  void _initialize() {
     final socketData = GetIt.instance<SocketData>();
     //! For Both Client 1 and Client 2 to share their current chatting user
     socketData.socket.on(
@@ -120,17 +124,17 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
       socketData.partnerHasSDP = partner["hasSDP"];
     });
 
-    SocketDataChannelService.initializeDataChannel();
-    SocketMediaService.initializeMedia();
+    SocketDataChannelService.I.initializeDataChannel();
+    SocketMediaService.I.initializeMedia();
 
     /// Miscellaneous socket service
 
-    unawaited(MiscSocketService.initialize());
+    unawaited(MiscSocketService.I.initialize());
   }
 
   ///-----------------------------------------------------
 
-  static void chatClose() {
+  void chatClose() {
     final socketData = GetIt.instance<SocketData>();
 
     if (socketData.partnerCurrentChatId.isNotEmpty &&
@@ -150,208 +154,6 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
     socketData
       ..myCurrentChatId = ""
       ..hasSDP = false;
-  }
-}
-
-@protected
-mixin SocketDataChannelService {
-  static void initializeDataChannel() {
-    final socketData = GetIt.instance<SocketData>();
-
-    //! For Client 1 / DataChannel
-    socketData.socket.on("exchangeSDPAnswerNotify", (data) async {
-      await SocketMediaService.socketSDPAnswer(
-        data: data,
-      );
-    });
-
-    //! For Client 2 / DataChannel
-    socketData.socket.on("exchangeSDPOfferNotify", (data) async {
-      RTCConnections.getRTCPeerConnection.onDataChannel = (ch) {
-        RTCMediaService.channel = ch
-          ..onDataChannelState = (state) {
-            RTCMediaService.onDataChannelService(state: state);
-          }
-          ..onMessage = (message) {
-            RTCMediaService.onListenMessage(message);
-          };
-      };
-
-      // listen for Remote IceCandidate
-      socketData.socket.on("exchangeIceNotify", (data) {
-        final ice =
-            (data as Map<String, dynamic>)["ice"] as Map<String, dynamic>;
-
-        RTCConnections.addCandidates(
-          candidate: ice["candidate"],
-          sdpMid: ice["sdpMid"],
-          sdpMLineIndex: ice["sdpMLineIndex"],
-        );
-      });
-
-      // create SDP answer
-      final offer =
-          (data as Map<String, dynamic>)["offer"] as Map<String, dynamic>;
-      final RTCSessionDescription answer = await RTCConnections.createAnswer(
-        offerSDP: offer["sdp"],
-        type: offer["type"],
-      );
-
-      socketData
-        ..hasSDP = true
-        ..partnerHasSDP = true;
-
-      socketData.socket.emit("exchangeSDPAnswer", {
-        {
-          "to": data["from"],
-          "answer": answer.toMap(),
-        }
-      });
-    });
-  }
-}
-
-@protected
-mixin SocketMediaService {
-  static void initializeMedia() {
-    final socketData = GetIt.instance<SocketData>();
-
-    //! For Client 1 / Media Call
-    socketData.socket.on("callAnswered", (data) async {
-      await socketSDPAnswer(data: data, isVideo: true);
-      socketData.myCurrentCallPartnerId =
-          (data as Map<String, dynamic>)["from"];
-    });
-
-    //! For Client 2 / MediaCall
-    socketData.socket.on("newCall", (data) async {
-      debugPrint("----------------------new call-------$data---------------");
-      socketData.tempOffer = data as Map<String, dynamic>;
-      await CallKitVOIP.inComingCall(
-        callerName: data["callerName"],
-        callerId: data["from"],
-        isVideo: data["video"],
-        callerHandle: data["callerHandle"],
-        callerAvatar: data["callerAvatar"],
-      );
-
-      MiscSocketService.callHandler = data["callerHandle"];
-      MiscSocketService.avatar = data["callerAvatar"];
-      MiscSocketService.callerName.add(data["callerName"]);
-    });
-
-    socketData.socket.on("callEndNotify", (data) {
-      socketData
-        ..hasSDP = false
-        ..myCurrentCallPartnerId = "";
-      RTCMediaService.onPartnerCallEnded();
-    });
-
-    socketData.socket.on("declineCallNotify", (data) async {
-      JackRTCService.onListenDeclineCall?.call();
-    });
-
-    socketData.socket.on("callCancelNotify", (data) async {
-      await CallKitVOIP.callEnd();
-      JackRTCService.onListenCancelCall?.call();
-    });
-
-    socketData.socket.on("missedCallNotify", (data) async {});
-    socketData.socket.on("videoMutedNotify", (data) async {
-      RTCMediaService.isPartnerVideoOpen
-          .add((data as Map<String, dynamic>)["status"]);
-    });
-    socketData.socket.on("videoRequestNotify", (data) async {});
-  }
-
-  static Future<void> socketSDPAnswer({
-    required Map<String, dynamic> data,
-    bool isVideo = false,
-  }) async {
-    final socketData = GetIt.instance<SocketData>();
-
-    debugPrint(
-      "---------------just-------${RTCConnections.getRTCPeerConnection.signalingState}----------------------",
-    );
-    try {
-      final answer = data["answer"] as Map<String, dynamic>;
-      // set SDP answer as remoteDescription for peerConnection
-      await RTCConnections.getRTCPeerConnection.setRemoteDescription(
-        RTCSessionDescription(answer["sdp"], answer["type"]),
-      );
-    } catch (_) {
-      debugPrint(
-        "----------------------remote description already set up----------------------",
-      );
-    }
-    socketData.partnerHasSDP = true;
-
-    debugPrint(
-      "-----------exchangeIce stack-----------${RTCConnections.rtcIceCadidates.length}----------------------",
-    );
-    // send iceCandidate generated to remote peer over signalling
-    for (final RTCIceCandidate i in RTCConnections.rtcIceCadidates) {
-      socketData.socket.emit(
-        "exchangeIce",
-        {
-          "to": socketData.myCurrentChatId,
-          "ice": {
-            "sdpMid": i.sdpMid,
-            "sdpMLineIndex": i.sdpMLineIndex,
-            "candidate": i.candidate,
-          },
-        },
-      );
-    }
-  }
-
-  static Future<void> acceptCallSocket(RTCSessionDescription answer) async {
-    final socketData = GetIt.instance<SocketData>();
-
-    // listen for Remote IceCandidate
-    socketData.socket.on("exchangeIceNotify", (data) {
-      final ice =
-          ((data as Map<String, dynamic>)["ice"] as Map<String, dynamic>);
-      RTCConnections.addCandidates(
-        candidate: ice["candidate"],
-        sdpMid: ice["sdpMid"],
-        sdpMLineIndex: ice["sdpMLineIndex"],
-      );
-    });
-
-    socketData.socket.emit("answerCall", {
-      {
-        "to": (socketData.tempOffer as Map<String, dynamic>)["from"],
-        "answer": answer.toMap(),
-      }
-    });
-  }
-
-  static void videoMutedSocket(bool status) {
-    final socketData = GetIt.instance<SocketData>();
-
-    socketData.socket.emit("videoMuted", {
-      "to": socketData.myCurrentCallPartnerId,
-      "status": status,
-    });
-  }
-
-  static void endCallSocket() {
-    final socketData = GetIt.instance<SocketData>()
-      ..hasSDP = false
-      ..myCurrentCallPartnerId = "";
-    socketData.socket.emit("callEnd", {
-      "to": socketData.myCurrentCallPartnerId,
-    });
-  }
-
-  static void cancelCallSocket() {
-    final socketData = GetIt.instance<SocketData>();
-
-    RTCMediaService.isCallingMedia.add(false);
-    socketData.socket.emit("callCancel", {
-      "to": socketData.myCurrentChatId,
-    });
   }
 }
 
