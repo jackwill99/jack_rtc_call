@@ -1,13 +1,13 @@
 import "package:flutter/foundation.dart";
 import "package:flutter_webrtc/flutter_webrtc.dart";
 import "package:get_it/get_it.dart";
+import "package:jack_rtc_call/model/socket/socket_data_channel_abstract.dart";
 import "package:jack_rtc_call/src/socket/socket_media_services.dart";
 import "package:jack_rtc_call/src/socket/socket_services.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
-import "package:jack_rtc_call/src/web_rtc/rtc_base.dart";
 
 @protected
-class SocketDataChannelService {
+class SocketDataChannelService extends SocketDataChannelAbstract {
   factory SocketDataChannelService() {
     return I;
   }
@@ -16,6 +16,7 @@ class SocketDataChannelService {
 
   static final SocketDataChannelService I = SocketDataChannelService._();
 
+  @override
   void initializeDataChannel() {
     final socketData = GetIt.instance<SocketData>();
 
@@ -28,7 +29,7 @@ class SocketDataChannelService {
 
     //! For Client 2 / DataChannel
     socketData.socket.on("exchangeSDPOfferNotify", (data) async {
-      RTCConnections.getRTCPeerConnection.onDataChannel = (ch) {
+      rtcConnection.getRTCPeerConnection.onDataChannel = (ch) {
         RTCMediaService.I.channel = ch
           ..onDataChannelState = (state) {
             RTCMediaService.I.onDataChannelService(state: state);
@@ -43,7 +44,7 @@ class SocketDataChannelService {
         final ice =
             (data as Map<String, dynamic>)["ice"] as Map<String, dynamic>;
 
-        RTCConnections.addCandidates(
+        rtcConnection.addCandidates(
           candidate: ice["candidate"],
           sdpMid: ice["sdpMid"],
           sdpMLineIndex: ice["sdpMLineIndex"],
@@ -53,7 +54,7 @@ class SocketDataChannelService {
       // create SDP answer
       final offer =
           (data as Map<String, dynamic>)["offer"] as Map<String, dynamic>;
-      final RTCSessionDescription answer = await RTCConnections.createAnswer(
+      final RTCSessionDescription answer = await rtcConnection.createAnswer(
         offerSDP: offer["sdp"],
         type: offer["type"],
       );

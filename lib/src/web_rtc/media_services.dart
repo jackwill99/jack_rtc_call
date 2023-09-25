@@ -5,7 +5,7 @@
 
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
-import "package:flutter_webrtc/flutter_webrtc.dart"; // ignore: implementation_imports
+import "package:flutter_webrtc/flutter_webrtc.dart";
 import "package:flutter_webrtc/src/native/factory_impl.dart" as Navigator;
 import "package:get_it/get_it.dart";
 import "package:jack_rtc_call/src/callkit/callkit.dart";
@@ -43,6 +43,8 @@ class RTCMediaService {
   late Function(RTCDataChannelMessage message) onListenMessage;
 
   late Function() onPartnerCallEnded;
+
+  final rtcConnection = RTCConnections();
 
   void init() {
     localRTCVideoRenderer.add(RTCVideoRenderer());
@@ -158,7 +160,7 @@ class RTCMediaService {
         });
         debugPrint("Create Offer ======================");
       }
-      if (RTCConnections.getRTCPeerConnection.connectionState !=
+      if (rtcConnection.getRTCPeerConnection.connectionState !=
           RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         tempMessages.add(RTCDataChannelMessage(message));
       }
@@ -188,7 +190,7 @@ class RTCMediaService {
     await _setUpInitialize();
 
     // listen for remotePeer mediaTrack event
-    RTCConnections.getRTCPeerConnection.onTrack = (event) async {
+    rtcConnection.getRTCPeerConnection.onTrack = (event) async {
       final tempRemoteRenderer = RTCVideoRenderer();
       await tempRemoteRenderer.initialize();
       tempRemoteRenderer.srcObject = event.streams[0];
@@ -231,7 +233,7 @@ class RTCMediaService {
     localRTCVideoRenderer.add(tempRemoteRenderer);
     // add mediaTrack to peerConnection
     localStream.value!.getTracks().forEach((track) {
-      RTCConnections.getRTCPeerConnection.addTrack(track, localStream.value!);
+      rtcConnection.getRTCPeerConnection.addTrack(track, localStream.value!);
     });
   }
 
@@ -251,7 +253,7 @@ class RTCMediaService {
     );
     if (!isCallingMedia.value) {
       isCallingMedia.add(true);
-      await RTCConnections.restartConnections();
+      await rtcConnection.restartConnections();
 
       await setupMediaCall(videoOn: videoOn);
 
@@ -284,10 +286,10 @@ class RTCMediaService {
   }) async {
     final socketData = GetIt.instance<SocketData>();
 
-    await RTCConnections.restartConnections();
+    await rtcConnection.restartConnections();
 
     // data channel
-    RTCConnections.getRTCPeerConnection.onDataChannel = (ch) {
+    rtcConnection.getRTCPeerConnection.onDataChannel = (ch) {
       channel = ch
         ..onDataChannelState = (state) {
           onDataChannelService(state: state);
@@ -315,7 +317,7 @@ class RTCMediaService {
     );
 
     // create SDP answer
-    final answer = await RTCConnections.createAnswer(
+    final answer = await rtcConnection.createAnswer(
       offerSDP: (partnerOffer["offer"] as Map<String, dynamic>)["sdp"],
       type: (partnerOffer["offer"] as Map<String, dynamic>)["type"],
     );
@@ -370,7 +372,7 @@ class RTCMediaService {
     final socketData = GetIt.instance<SocketData>();
 
     // listening data channel
-    channel = await RTCConnections.getRTCPeerConnection.createDataChannel(
+    channel = await rtcConnection.getRTCPeerConnection.createDataChannel(
       "dataChannel-${123456}",
       RTCDataChannelInit()..id = int.parse("123456"),
     );
@@ -382,7 +384,7 @@ class RTCMediaService {
       onMessage(data);
     };
 
-    final offer = await RTCConnections.createOffer();
+    final offer = await rtcConnection.createOffer();
     socketData.hasSDP = true;
     return offer;
   }
@@ -411,7 +413,7 @@ class RTCMediaService {
         ..partnerHasSDP = false;
 
       isCallingMedia.value = false;
-      await RTCConnections.restartConnections();
+      await rtcConnection.restartConnections();
     }
   }
 }

@@ -1,14 +1,14 @@
 import "package:flutter/foundation.dart";
 import "package:get_it/get_it.dart";
 import "package:jack_rtc_call/jack_rtc_call.dart";
+import "package:jack_rtc_call/model/socket/socket_media_abstract.dart";
 import "package:jack_rtc_call/src/callkit/callkit.dart";
 import "package:jack_rtc_call/src/socket/misc_socket.dart";
 import "package:jack_rtc_call/src/socket/socket_services.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
-import "package:jack_rtc_call/src/web_rtc/rtc_base.dart";
 
 @protected
-class SocketMediaService {
+class SocketMediaService extends SocketMediaAbstract {
   factory SocketMediaService() {
     return I;
   }
@@ -17,6 +17,7 @@ class SocketMediaService {
 
   static final SocketMediaService I = SocketMediaService._();
 
+  @override
   void initializeMedia() {
     final socketData = GetIt.instance<SocketData>();
 
@@ -69,6 +70,7 @@ class SocketMediaService {
     socketData.socket.on("videoRequestNotify", (data) async {});
   }
 
+  @override
   Future<void> socketSDPAnswer({
     required Map<String, dynamic> data,
     bool isVideo = false,
@@ -76,12 +78,12 @@ class SocketMediaService {
     final socketData = GetIt.instance<SocketData>();
 
     debugPrint(
-      "---------------just-------${RTCConnections.getRTCPeerConnection.signalingState}----------------------",
+      "---------------just-------${rtcConnection.getRTCPeerConnection.signalingState}----------------------",
     );
     try {
       final answer = data["answer"] as Map<String, dynamic>;
       // set SDP answer as remoteDescription for peerConnection
-      await RTCConnections.getRTCPeerConnection.setRemoteDescription(
+      await rtcConnection.getRTCPeerConnection.setRemoteDescription(
         RTCSessionDescription(answer["sdp"], answer["type"]),
       );
     } catch (_) {
@@ -92,10 +94,10 @@ class SocketMediaService {
     socketData.partnerHasSDP = true;
 
     debugPrint(
-      "-----------exchangeIce stack-----------${RTCConnections.rtcIceCadidates.length}----------------------",
+      "-----------exchangeIce stack-----------${rtcConnection.rtcIceCadidates.length}----------------------",
     );
     // send iceCandidate generated to remote peer over signalling
-    for (final RTCIceCandidate i in RTCConnections.rtcIceCadidates) {
+    for (final RTCIceCandidate i in rtcConnection.rtcIceCadidates) {
       socketData.socket.emit(
         "exchangeIce",
         {
@@ -110,6 +112,7 @@ class SocketMediaService {
     }
   }
 
+  @override
   Future<void> acceptCallSocket(RTCSessionDescription answer) async {
     final socketData = GetIt.instance<SocketData>();
 
@@ -117,7 +120,7 @@ class SocketMediaService {
     socketData.socket.on("exchangeIceNotify", (data) {
       final ice =
           ((data as Map<String, dynamic>)["ice"] as Map<String, dynamic>);
-      RTCConnections.addCandidates(
+      rtcConnection.addCandidates(
         candidate: ice["candidate"],
         sdpMid: ice["sdpMid"],
         sdpMLineIndex: ice["sdpMLineIndex"],
@@ -132,6 +135,7 @@ class SocketMediaService {
     });
   }
 
+  @override
   void videoMutedSocket({required bool status}) {
     final socketData = GetIt.instance<SocketData>();
 
@@ -141,6 +145,7 @@ class SocketMediaService {
     });
   }
 
+  @override
   void endCallSocket() {
     final socketData = GetIt.instance<SocketData>()
       ..hasSDP = false
@@ -150,6 +155,7 @@ class SocketMediaService {
     });
   }
 
+  @override
   void cancelCallSocket() {
     final socketData = GetIt.instance<SocketData>();
 

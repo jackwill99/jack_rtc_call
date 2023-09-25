@@ -56,6 +56,7 @@ class JackRTCService extends JackRTCData {
   final socketMediaService = SocketMediaService();
   final miscSocketService = MiscSocketService();
   final rtcMediaServices = RTCMediaService();
+  final rtcConnection = RTCConnections();
 
   // final dynamic redirectToOffers;
 
@@ -66,7 +67,7 @@ class JackRTCService extends JackRTCData {
     socketServices.chatClose();
 
     /// ❌ Everytime you leave the chat conversation, dispose peer connection.
-    await RTCConnections.dispose();
+    await rtcConnection.dispose();
 
     socketData
       ..socket.disconnect()
@@ -128,11 +129,11 @@ class JackRTCService extends JackRTCData {
 
     await rtcMediaServices.callEnd();
     if (socketData.myCurrentCallPartnerId.isNotEmpty) {
-      await RTCConnections.dispose();
+      await rtcConnection.dispose();
       socketMediaService.endCallSocket();
     }
     if (isComesFromChat) {
-      await RTCConnections.checkAndReinitialize();
+      await rtcConnection.checkAndReinitialize();
     }
   }
 
@@ -198,7 +199,7 @@ class JackRTCService extends JackRTCData {
   Future<void> enterChatPage() async {
     if (!rtcMediaServices.isCallingMedia.value) {
       /// ✅ Everytime you want to start communication, open connection
-      await RTCConnections.setupPeerConnection();
+      await rtcConnection.setupPeerConnection();
     }
     socketServices.initializeRequest();
   }
@@ -208,7 +209,7 @@ class JackRTCService extends JackRTCData {
       socketServices.chatClose();
 
       /// ❌ Everytime you leave the chat conversation, dispose peer connection.
-      await RTCConnections.dispose();
+      await rtcConnection.dispose();
     }
   }
 

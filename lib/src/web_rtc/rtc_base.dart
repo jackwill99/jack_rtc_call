@@ -9,6 +9,10 @@ import "package:jack_rtc_call/src/socket/socket_services.dart";
 
 @protected
 class RTCConnections {
+  factory RTCConnections() {
+    return I;
+  }
+
   /// ## Assume there has Client 1 and Client 2.
   ///
   /// 🙋‍♂️ Client 1 is the sender or request to start the real time communication.
@@ -24,18 +28,20 @@ class RTCConnections {
   /// by gathering network addresses (IP addresses and ports) of a client using techniques like STUN and TURN
   RTCConnections._();
 
-  // RTC peer connection
-  static RTCPeerConnection? _rtcPeerConnection;
+  static final RTCConnections I = RTCConnections._();
 
-  static RTCPeerConnection get getRTCPeerConnection {
+  // RTC peer connection
+  RTCPeerConnection? _rtcPeerConnection;
+
+  RTCPeerConnection get getRTCPeerConnection {
     return _rtcPeerConnection!;
   }
 
   // list of rtcCandidates to be sent over signalling
-  static final List<RTCIceCandidate> rtcIceCadidates = [];
+  final List<RTCIceCandidate> rtcIceCadidates = [];
 
   /// ## ✅ Everytime you want to start communication, open connection
-  static Future<RTCPeerConnection> setupPeerConnection() async {
+  Future<RTCPeerConnection> setupPeerConnection() async {
     // create peer connection
     _rtcPeerConnection = await createPeerConnection(
       {
@@ -74,10 +80,10 @@ class RTCConnections {
   /// ## 💁‍♂️ For Client 1
   /// This setp is after opening the RTC peer connections.
   /// Offer is generated for Client 1 and send this offer to Client 2.
-  static Future<RTCSessionDescription> createOffer() async {
+  Future<RTCSessionDescription> createOffer() async {
     // listen for local iceCandidate and add it to the list of IceCandidate
     _rtcPeerConnection!.onIceCandidate =
-        (candidate) => RTCConnections.rtcIceCadidates.add(candidate);
+        (candidate) => RTCConnections.I.rtcIceCadidates.add(candidate);
 
     // create SDP Offer
     final RTCSessionDescription offer = await _rtcPeerConnection!.createOffer();
@@ -107,7 +113,7 @@ class RTCConnections {
   ///
   /// But you don't need the list of IceCandidates. This is only for the client of offered
   ///
-  static Future<List<RTCIceCandidate>> setRemoteDescription({
+  Future<List<RTCIceCandidate>> setRemoteDescription({
     required String sdp,
     required String type,
   }) async {
@@ -121,7 +127,7 @@ class RTCConnections {
   /// When Client 1 requested and wanted to start communication, you need to generate your answer
   ///
   /// This will generate your answer and send it to Client 1.
-  static Future<RTCSessionDescription> createAnswer({
+  Future<RTCSessionDescription> createAnswer({
     required String offerSDP,
     required String type,
   }) async {
@@ -144,7 +150,7 @@ class RTCConnections {
   /// Add IceCandidates of Client 1 in your peer connection.
   ///
   /// And now you are successfully connected 🚀
-  static Future<void> addCandidates({
+  Future<void> addCandidates({
     required String candidate,
     required String sdpMid,
     required int sdpMLineIndex,
@@ -160,7 +166,7 @@ class RTCConnections {
   }
 
   /// ## ❌ Everytime you leave the chat conversation, dispose peer connection.
-  static Future<void> dispose() async {
+  Future<void> dispose() async {
     await _rtcPeerConnection?.dispose();
     await _rtcPeerConnection?.close();
     _rtcPeerConnection = null;
@@ -171,7 +177,7 @@ class RTCConnections {
   }
 
   /// Restart and re-initialize the peer connections
-  static Future<void> restartConnections() async {
+  Future<void> restartConnections() async {
     await dispose();
 
     /// ✅ Everytime you want to start communication, open connection
@@ -182,8 +188,8 @@ class RTCConnections {
   }
 
   /// Check and ReInitialize peer connections
-  static Future<void> checkAndReinitialize() async {
+  Future<void> checkAndReinitialize() async {
     SocketServices.I.initializeRequest();
-    await RTCConnections.setupPeerConnection();
+    await RTCConnections.I.setupPeerConnection();
   }
 }

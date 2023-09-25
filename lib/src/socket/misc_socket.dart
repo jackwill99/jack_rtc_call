@@ -1,10 +1,10 @@
 import "package:flutter/foundation.dart";
 import "package:get_it/get_it.dart";
+import "package:jack_rtc_call/model/socket/misc_socket_abstract.dart";
 import "package:jack_rtc_call/src/socket/socket_services.dart";
-import "package:rxdart/rxdart.dart";
 
 @protected
-class MiscSocketService {
+class MiscSocketService extends MiscSocketServiceAbstract {
   factory MiscSocketService() {
     return I;
   }
@@ -13,13 +13,7 @@ class MiscSocketService {
 
   static final MiscSocketService I = MiscSocketService._();
 
-  final isOnline = BehaviorSubject<bool>.seeded(true);
-  String? id;
-
-  final callerName = BehaviorSubject<String?>.seeded(null);
-  String? callHandler;
-  String? avatar;
-
+  @override
   Future<void> initialize() async {
     final socketData = GetIt.instance<SocketData>();
 

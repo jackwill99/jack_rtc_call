@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter/foundation.dart";
 import "package:get_it/get_it.dart";
+import "package:jack_rtc_call/model/socket/socket_services_abstract.dart";
 import "package:jack_rtc_call/src/callkit/callkit.dart";
 import "package:jack_rtc_call/src/socket/misc_socket.dart";
 import "package:jack_rtc_call/src/socket/socket_data_channel_services.dart";
@@ -9,7 +10,8 @@ import "package:jack_rtc_call/src/socket/socket_media_services.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
 import "package:socket_io_client/socket_io_client.dart";
 
-class SocketServices {
+class SocketServices extends SocketServicesAbstract
+    with _SocketServiceInitialize {
   factory SocketServices() {
     return I;
   }
@@ -18,6 +20,7 @@ class SocketServices {
 
   static final SocketServices I = SocketServices._();
 
+  @override
   void connectToServer(dynamic redirectToOffer) {
     final socketData = GetIt.instance<SocketData>();
 
@@ -60,6 +63,7 @@ class SocketServices {
     );
   }
 
+  @override
   void initializeRequest() {
     final socketData = GetIt.instance<SocketData>();
 
@@ -71,6 +75,32 @@ class SocketServices {
         .emit("askRequestChat", {"to": socketData.myCurrentChatId});
   }
 
+  ///-----------------------------------------------------
+  @override
+  void chatClose() {
+    final socketData = GetIt.instance<SocketData>();
+
+    if (socketData.partnerCurrentChatId.isNotEmpty &&
+        socketData.myUserId == socketData.partnerCurrentChatId) {
+      socketData.socket.emit(
+        "updatePartnerInfo",
+        {
+          "to": socketData.myCurrentChatId,
+          "my": {
+            "myCurrentChatId": "",
+            "hasSDP": false,
+          },
+        },
+      );
+    }
+
+    socketData
+      ..myCurrentChatId = ""
+      ..hasSDP = false;
+  }
+}
+
+mixin _SocketServiceInitialize {
   /// ## Assume there has Client 1 and Client 2.
   ///
   /// 🙋‍♂️ Client 1 is the sender or request to start the real time communication.
@@ -130,30 +160,6 @@ class SocketServices {
     /// Miscellaneous socket service
 
     unawaited(MiscSocketService.I.initialize());
-  }
-
-  ///-----------------------------------------------------
-
-  void chatClose() {
-    final socketData = GetIt.instance<SocketData>();
-
-    if (socketData.partnerCurrentChatId.isNotEmpty &&
-        socketData.myUserId == socketData.partnerCurrentChatId) {
-      socketData.socket.emit(
-        "updatePartnerInfo",
-        {
-          "to": socketData.myCurrentChatId,
-          "my": {
-            "myCurrentChatId": "",
-            "hasSDP": false,
-          },
-        },
-      );
-    }
-
-    socketData
-      ..myCurrentChatId = ""
-      ..hasSDP = false;
   }
 }
 
