@@ -49,7 +49,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
             "my": {
               "myCurrentChatId": socketData.myCurrentChatId,
               "hasSDP": socketData.hasSDP,
-            }
+            },
           },
         );
       },
@@ -99,7 +99,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
               "my": {
                 "myCurrentChatId": socketData.myCurrentChatId,
                 "hasSDP": socketData.hasSDP,
-              }
+              },
             },
           );
         }
@@ -142,7 +142,7 @@ class SocketServices with SocketDataChannelService, SocketMediaService {
           "my": {
             "myCurrentChatId": "",
             "hasSDP": false,
-          }
+          },
         },
       );
     }
@@ -291,14 +291,17 @@ mixin SocketMediaService {
     );
     // send iceCandidate generated to remote peer over signalling
     for (final RTCIceCandidate i in RTCConnections.rtcIceCadidates) {
-      socketData.socket.emit("exchangeIce", {
-        "to": socketData.myCurrentChatId,
-        "ice": {
-          "sdpMid": i.sdpMid,
-          "sdpMLineIndex": i.sdpMLineIndex,
-          "candidate": i.candidate,
-        }
-      });
+      socketData.socket.emit(
+        "exchangeIce",
+        {
+          "to": socketData.myCurrentChatId,
+          "ice": {
+            "sdpMid": i.sdpMid,
+            "sdpMLineIndex": i.sdpMLineIndex,
+            "candidate": i.candidate,
+          },
+        },
+      );
     }
   }
 

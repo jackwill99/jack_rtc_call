@@ -37,20 +37,22 @@ class RTCConnections {
   /// ## ✅ Everytime you want to start communication, open connection
   static Future<RTCPeerConnection> setupPeerConnection() async {
     // create peer connection
-    _rtcPeerConnection = await createPeerConnection({
-      // TODO(jackwill): take params for the server config
-      "iceServers": [
-        {
-          "urls": "stun:stun.telemed.sabahna.com:8443"
-          //   'stun:stun1.l.google.com:19302',
-        },
-        {
-          "urls": "turn:turn.telemed.sabahna.com:8443",
-          "credential": "sabahna",
-          "username": "sabahna"
-        }
-      ]
-    });
+    _rtcPeerConnection = await createPeerConnection(
+      {
+        // TODO(jackwill): take params for the server config
+        "iceServers": [
+          {
+            "urls": "stun:stun.telemed.sabahna.com:8443",
+            //   'stun:stun1.l.google.com:19302',
+          },
+          {
+            "urls": "turn:turn.telemed.sabahna.com:8443",
+            "credential": "sabahna",
+            "username": "sabahna",
+          }
+        ],
+      },
+    );
     _rtcPeerConnection?.onIceCandidate =
         (candidate) => rtcIceCadidates.add(candidate);
     debugPrint(
