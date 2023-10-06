@@ -3,21 +3,21 @@
 // https://github.com/jackwill99
 // This file is created for only public methods of class
 
-// ignore_for_file: avoid_positional_boolean_parameters
-
 import "dart:async";
 
 import "package:flutter/foundation.dart";
 import "package:flutter_webrtc/flutter_webrtc.dart";
-import "package:get_it/get_it.dart";
+import "package:jack_rtc_call/model/web_rtc/webrtc_abstract.dart";
 import "package:jack_rtc_call/src/callkit/callkit.dart";
 import "package:jack_rtc_call/src/socket/misc_socket.dart";
+import "package:jack_rtc_call/src/socket/socket_data.dart";
+import "package:jack_rtc_call/src/socket/socket_media_services.dart";
 import "package:jack_rtc_call/src/socket/socket_services.dart";
-import "package:jack_rtc_call/src/web_rtc/jack_rtc_data.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
-import "package:jack_rtc_call/src/web_rtc/rtc_base.dart";
+import "package:jack_rtc_call/src/web_rtc/rtc_connection.dart";
+import "package:rxdart/rxdart.dart";
 
-class JackRTCService extends JackRTCData {
+class JackRTCService extends WebRTCAbstract {
   ///
   /// `toCallingPage` is route for calling page
   ///
@@ -33,38 +33,40 @@ class JackRTCService extends JackRTCData {
     required Future<dynamic> Function() toCallingPage,
     required dynamic redirectToOffer,
   }) {
-    if (!GetIt.I.isRegistered<SocketData>()) {
-      debugPrint(
-        "----------------------register sigalton ----------------------",
-      );
-      GetIt.I.registerSingleton<SocketData>(SocketData());
-    }
-
-    GetIt.instance<SocketData>()
+    socketData
       ..myUserId = myId
       ..socketUrl = socketUrl
       ..settingSocket();
-    SocketServices.connectToServer(redirectToOffer);
-    RTCMediaService.init();
+    SocketServices.I.connectToServer(redirectToOffer);
+    RTCMediaService.I.init();
 
     toRoute = toCallingPage;
-    unawaited(CallKitVOIP.listenerEvent());
-    CallKitVOIP.toRoute = toCallingPage;
+    unawaited(CallKitVOIP.I.listenerEvent());
+    CallKitVOIP.I.toRoute = toCallingPage;
   }
+
+  final _socketServices = SocketServices();
+  final _socketMediaService = SocketMediaService();
+  final _miscSocketService = MiscSocketService();
+  final _rtcMediaServices = RTCMediaService();
+  final _rtcConnection = RTCConnections();
+
   // final dynamic redirectToOffers;
 
   // ------------------------ Connection and Disconnection ---------------------
-  Future<void> disconnect() async {
-    final socketData = GetIt.instance<SocketData>();
 
-    SocketServices.chatClose();
+  @override
+  Future<void> disconnect() async {
+    final socketData = SocketData();
+
+    _socketServices.chatClose();
 
     /// ❌ Everytime you leave the chat conversation, dispose peer connection.
-    await RTCConnections.dispose();
+    await _rtcConnection.dispose();
 
     socketData
-      ..socket.disconnect()
-      ..socket.close()
+      ..socket?.disconnect()
+      ..socket?.close()
       ..socket = null;
   }
 
@@ -80,11 +82,12 @@ class JackRTCService extends JackRTCData {
 
   // *************** Data Channel
 
+  @override
   Future<void> sendMessage({
     required dynamic message,
     bool isBinary = false,
   }) async {
-    await RTCMediaService.sendMessage(
+    await _rtcMediaServices.sendMessage(
       message: message,
       isBinary: isBinary,
     );
@@ -92,19 +95,14 @@ class JackRTCService extends JackRTCData {
 
   // *************** Media Calling
 
-  /// `callerName` is the name of the caller to display
-  ///
-  /// `callerHandle` may be email or phone number or None
-  ///
-  /// `callerAvatar` works only in Android to show the avatar of the caller profile
-  ///
+  @override
   Future<dynamic> mediaCall({
     required bool isVideoOn,
     required String callerName,
     String? callerHandle,
     String? callerAvatar,
   }) async {
-    return await RTCMediaService.mediaCall(
+    return await _rtcMediaServices.mediaCall(
       videoOn: isVideoOn,
       toRoute: toRoute,
       callerName: callerName,
@@ -113,25 +111,26 @@ class JackRTCService extends JackRTCData {
     );
   }
 
+  @override
   Future<void> acceptCall() async {
-    await RTCMediaService.acceptCall(toRoute: toRoute);
+    await _rtcMediaServices.acceptCall(toRoute: toRoute);
   }
 
-  Future<void> endCall(bool isComesFromChat) async {
-    final socketData = GetIt.instance<SocketData>();
-
-    await RTCMediaService.callEnd();
+  @override
+  Future<void> endCall({required bool isComesFromChat}) async {
+    await _rtcMediaServices.callEnd();
     if (socketData.myCurrentCallPartnerId.isNotEmpty) {
-      await RTCConnections.dispose();
-      SocketMediaService.endCallSocket();
+      await _rtcConnection.dispose();
+      _socketMediaService.endCallSocket();
     }
     if (isComesFromChat) {
-      await RTCConnections.checkAndReinitialize();
+      await _rtcConnection.checkAndReinitialize();
     }
   }
 
+  @override
   Future<void> cancelCall() async {
-    SocketMediaService.cancelCallSocket();
+    _socketMediaService.cancelCallSocket();
   }
 
   @protected
@@ -140,25 +139,29 @@ class JackRTCService extends JackRTCData {
   @protected
   static FutureOr<void> Function()? onListenCancelCall;
 
-  void setAudio(bool status) {
-    RTCMediaService.setAudioStatus(status);
+  @override
+  void setAudio({required bool status}) {
+    _rtcMediaServices.setAudioStatus(status: status);
   }
 
-  void setVideo(bool status) {
-    RTCMediaService.setVideoStatus(status);
+  @override
+  void setVideo({required bool status}) {
+    _rtcMediaServices.setVideoStatus(status: status);
   }
 
+  @override
   void switchCamera() {
-    unawaited(RTCMediaService.switchCamera());
+    unawaited(_rtcMediaServices.switchCamera());
   }
 
-  Future<void> setSpeaker(bool status) async {
-    await RTCMediaService.setSpeakerStatus(status);
+  @override
+  Future<void> setSpeaker({required bool status}) async {
+    await _rtcMediaServices.setSpeakerStatus(status: status);
   }
 
-  /// `isJoinedCallingMedia, isAudioOn, isVideoOn, isFrontCamera, isPartnerVideoOpen, isSpeakerOn`
+  @override
   Stream<(bool, bool, bool, bool, bool, bool)> mediaStatus() {
-    return RTCMediaService.mediaStatus;
+    return _rtcMediaServices.mediaStatus;
   }
 
   // ------------------------ CallKit Section ---------------------
@@ -173,43 +176,46 @@ class JackRTCService extends JackRTCData {
     void Function()? onCallDeepLink,
   }) async {
     if (onCallDeepLink != null) {
-      CallKitVOIP.onCallDeepLink = onCallDeepLink;
-      await CallKitVOIP.listenerEvent();
+      CallKitVOIP.I.onCallDeepLink = onCallDeepLink;
+      await CallKitVOIP.I.listenerEvent();
     }
-    await CallKitVOIP.inComingCall(
+    await CallKitVOIP.I.inComingCall(
       callerName: callerName,
       callerId: callerId,
       callerAvatar: callerAvatar,
       callerHandle: callerAvatar,
       duration: duration,
       isVideo: isVideo,
-      onCallDeepLink: onCallDeepLink,
+      // onCallDeepLink: onCallDeepLink,
     );
   }
 
   // ------------------------ Other Miscellaneous actions ---------------------
 
+  @override
   Future<void> enterChatPage() async {
-    if (!RTCMediaService.isCallingMedia.value) {
+    if (!_rtcMediaServices.isCallingMedia.value) {
       /// ✅ Everytime you want to start communication, open connection
-      await RTCConnections.setupPeerConnection();
+      await _rtcConnection.setupPeerConnection();
     }
-    SocketServices.initializeRequest();
+    _socketServices.initializeRequest();
   }
 
+  @override
   Future<void> leaveChatPage() async {
-    if (!RTCMediaService.isCallingMedia.value) {
-      SocketServices.chatClose();
+    if (!_rtcMediaServices.isCallingMedia.value) {
+      _socketServices.chatClose();
 
       /// ❌ Everytime you leave the chat conversation, dispose peer connection.
-      await RTCConnections.dispose();
+      await _rtcConnection.dispose();
     }
   }
 
+  @override
   void onListenMiscState({
     required Function(RTCDataChannelMessage message) onListenMessage,
     required void Function() onListenPartnerCallEnded,
-    required void Function(bool isOnline, String? id) onListenOnline,
+    required void Function(String? id, {required bool isOnline}) onListenOnline,
     required FutureOr<void> Function() onListenPartnerCallCancel,
     required FutureOr<void> Function() onListenDeclineCall,
     required void Function({
@@ -218,23 +224,26 @@ class JackRTCService extends JackRTCData {
       String? avatar,
     }) onListenCallerInfo,
   }) {
-    RTCMediaService.onListenMessage = (message) {
-      onListenMessage(message);
-    };
-
-    RTCMediaService.onPartnerCallEnded = onListenPartnerCallEnded;
+    _rtcMediaServices
+      ..onListenMessage = (message) {
+        onListenMessage(message);
+      }
+      ..onPartnerCallEnded = onListenPartnerCallEnded;
 
     JackRTCService.onListenCancelCall = onListenPartnerCallCancel;
 
-    MiscSocketService.isOnline.listen((value) {
-      onListenOnline(value, MiscSocketService.id);
+    _miscSocketService.isOnline.listen((value) {
+      onListenOnline(
+        _miscSocketService.id,
+        isOnline: value,
+      );
     });
 
-    MiscSocketService.callerName.listen((value) {
+    _miscSocketService.callerName.listen((value) {
       onListenCallerInfo(
         callerName: value,
-        callHandler: MiscSocketService.callHandler,
-        avatar: MiscSocketService.avatar,
+        callHandler: _miscSocketService.callHandler,
+        avatar: _miscSocketService.avatar,
       );
     });
 
@@ -243,23 +252,36 @@ class JackRTCService extends JackRTCData {
 
   /// -------------
 
+  @override
+  ValueStream<RTCVideoRenderer?> get onLocalRTCMedia {
+    return RTCMediaService.I.localRTCVideoRenderer.stream;
+  }
+
+  @override
+  ValueStream<MediaStream?> get onLocalStream {
+    return RTCMediaService.I.localStream.stream;
+  }
+
+  @override
+  ValueStream<RTCVideoRenderer?> get onRemoteRTCMedia {
+    return RTCMediaService.I.remoteRTCVideoRenderer.stream;
+  }
+
   /// To change the chat id that I want
   void setMyCurrentChatId(String value) {
-    GetIt.instance<SocketData>().myCurrentChatId = value;
+    socketData.myCurrentChatId = value;
   }
 
   String get getMyCurrentChatId {
-    final socketData = GetIt.instance<SocketData>();
     return socketData.myCurrentChatId;
   }
 
   String get getMyId {
-    final socketData = GetIt.instance<SocketData>();
     return socketData.myUserId;
   }
 
   /// To set status that have I SDP
-  void setMyOwnSDP(bool value) {
-    GetIt.instance<SocketData>().hasSDP = value;
+  void setMyOwnSDP({required bool value}) {
+    socketData.hasSDP = value;
   }
 }

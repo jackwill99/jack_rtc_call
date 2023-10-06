@@ -1,22 +1,22 @@
 import "package:flutter/foundation.dart";
-import "package:get_it/get_it.dart";
-import "package:jack_rtc_call/src/socket/socket_services.dart";
-import "package:rxdart/rxdart.dart";
+import "package:jack_rtc_call/model/socket/misc_socket_abstract.dart";
+import "package:jack_rtc_call/src/socket/socket_data.dart";
 
-class MiscSocketService {
+@protected
+class MiscSocketService extends MiscSocketServiceAbstract {
+  factory MiscSocketService() {
+    return I;
+  }
+
   MiscSocketService._();
 
-  static final isOnline = BehaviorSubject<bool>.seeded(true);
-  static String? id;
+  static final MiscSocketService I = MiscSocketService._();
 
-  static final callerName = BehaviorSubject<String?>.seeded(null);
-  static String? callHandler;
-  static String? avatar;
+  @override
+  Future<void> initialize() async {
+    final socketData = SocketData();
 
-  static Future<void> initialize() async {
-    final socketData = GetIt.instance<SocketData>();
-
-    socketData.socket.on("onlineStatusNotify", (data) async {
+    socketData.socket?.on("onlineStatusNotify", (data) async {
       debugPrint(
         "----------------------onlineStatusNotify $data----------------------",
       );

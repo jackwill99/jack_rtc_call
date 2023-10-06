@@ -3,40 +3,32 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 import "package:flutter_callkit_incoming/entities/entities.dart";
 import "package:flutter_callkit_incoming/flutter_callkit_incoming.dart";
-import "package:get_it/get_it.dart";
-import "package:jack_rtc_call/src/socket/socket_services.dart";
+import "package:jack_rtc_call/model/callkit/callkit_abstract.dart";
+import "package:jack_rtc_call/src/socket/socket_data.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
 import "package:uuid/uuid.dart";
 
 @protected
-class CallKitVOIP {
+class CallKitVOIP extends CallKitVOIPAbstract {
+  factory CallKitVOIP() {
+    return I;
+  }
+
   CallKitVOIP._();
-  static String? _currentUuid;
-  static late CallKitParams callKitParams;
 
-  static late Future<dynamic> Function() toRoute;
+  static final CallKitVOIP I = CallKitVOIP._();
 
-  static FutureOr<void> Function()? onCallDeepLink;
+  String? _currentUuid;
 
-  /// `callerName` is the name of the caller to display
-  ///
-  /// `callerHandle` may be email or phone number or None
-  ///
-  /// `callerAvatar` works only in Android to show the avatar of the caller profile
-  ///
-  /// `duration` is to end and missed call in second, default is `45`s
-  ///
-  /// `isVideo` is the boolean and default is audio `false`
-  ///
-  static Future<void> inComingCall({
+  @override
+  Future<void> inComingCall({
     required String callerName,
     required String callerId,
     String? callerHandle,
-    //'https://i.pravatar.cc/100'
     String? callerAvatar,
     int? duration,
     bool isVideo = false,
-    void Function()? onCallDeepLink,
+    // void Function()? onCallDeepLink,
   }) async {
     _currentUuid = const Uuid().v4();
     debugPrint(
@@ -92,12 +84,13 @@ class CallKitVOIP {
     callKitParams = params;
   }
 
-  static Future<void> listenerEvent({
+  @override
+  Future<void> listenerEvent({
     void Function(CallEvent)? callback,
   }) async {
     SocketData? socketData;
     try {
-      socketData = GetIt.instance<SocketData>();
+      socketData = SocketData();
     } catch (_) {
       debugPrint("---------------------can't socketData----------------------");
     }
@@ -112,14 +105,14 @@ class CallKitVOIP {
             break;
           case Event.actionCallAccept:
             debugPrint(
-              "----------------------accept call-----${CallKitVOIP.onCallDeepLink != null}-----------------",
+              "----------------------accept call-----${onCallDeepLink != null}-----------------",
             );
-            if (CallKitVOIP.onCallDeepLink != null) {
-              CallKitVOIP.onCallDeepLink?.call();
+            if (onCallDeepLink != null) {
+              onCallDeepLink?.call();
               debugPrint("onCalldeeplink called");
-              CallKitVOIP.onCallDeepLink = null;
+              onCallDeepLink = null;
             } else {
-              await RTCMediaService.acceptCall(toRoute: toRoute);
+              await RTCMediaService.I.acceptCall(toRoute: toRoute);
               if (_currentUuid != null) {
                 await FlutterCallkitIncoming.setCallConnected(_currentUuid!);
               }
@@ -128,7 +121,7 @@ class CallKitVOIP {
             break;
           case Event.actionCallDecline:
             try {
-              socketData?.socket.emit("declineCall", {
+              socketData?.socket?.emit("declineCall", {
                 "to": callKitParams.extra?["callerId"],
               });
             } catch (_) {
@@ -161,7 +154,8 @@ class CallKitVOIP {
     }
   }
 
-  static Future<void> callEnd() async {
+  @override
+  Future<void> callEnd() async {
     debugPrint(
       "----------------------call end in call kit $_currentUuid----------------------",
     );
@@ -177,7 +171,8 @@ class CallKitVOIP {
     }
   }
 
-  static Future<void> checkAndNavigationCallingPage() async {
+  @override
+  Future<void> checkAndNavigationCallingPage() async {
     final currentCall = await _getCurrentCall();
     if (currentCall != null) {
       /// navigate to calling page
@@ -185,7 +180,7 @@ class CallKitVOIP {
     }
   }
 
-  static Future<dynamic> _getCurrentCall() async {
+  Future<dynamic> _getCurrentCall() async {
     //check current call from pushkit if possible
     final calls = await FlutterCallkitIncoming.activeCalls();
     if (calls is List) {
@@ -200,7 +195,7 @@ class CallKitVOIP {
     }
   }
 
-  /// Get device push token VoIP. iOS: return deviceToken, Android: Empty
+  @override
   Future<String> getDevicePushTokenVoIP() async {
     final devicePushTokenVoIP =
         await FlutterCallkitIncoming.getDevicePushTokenVoIP();
