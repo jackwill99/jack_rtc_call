@@ -1,9 +1,8 @@
 import "package:flutter/foundation.dart";
 import "package:flutter_webrtc/flutter_webrtc.dart";
-import "package:get_it/get_it.dart";
 import "package:jack_rtc_call/model/socket/socket_data_channel_abstract.dart";
+import "package:jack_rtc_call/src/socket/socket_data.dart";
 import "package:jack_rtc_call/src/socket/socket_media_services.dart";
-import "package:jack_rtc_call/src/socket/socket_services.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
 
 @protected
@@ -18,17 +17,17 @@ class SocketDataChannelService extends SocketDataChannelAbstract {
 
   @override
   void initializeDataChannel() {
-    final socketData = GetIt.instance<SocketData>();
+    final socketData = SocketData();
 
     //! For Client 1 / DataChannel
-    socketData.socket.on("exchangeSDPAnswerNotify", (data) async {
+    socketData.socket?.on("exchangeSDPAnswerNotify", (data) async {
       await SocketMediaService.I.socketSDPAnswer(
         data: data,
       );
     });
 
     //! For Client 2 / DataChannel
-    socketData.socket.on("exchangeSDPOfferNotify", (data) async {
+    socketData.socket?.on("exchangeSDPOfferNotify", (data) async {
       rtcConnection.getRTCPeerConnection.onDataChannel = (ch) {
         RTCMediaService.I.channel = ch
           ..onDataChannelState = (state) {
@@ -40,7 +39,7 @@ class SocketDataChannelService extends SocketDataChannelAbstract {
       };
 
       // listen for Remote IceCandidate
-      socketData.socket.on("exchangeIceNotify", (data) {
+      socketData.socket?.on("exchangeIceNotify", (data) {
         final ice =
             (data as Map<String, dynamic>)["ice"] as Map<String, dynamic>;
 
@@ -63,7 +62,7 @@ class SocketDataChannelService extends SocketDataChannelAbstract {
         ..hasSDP = true
         ..partnerHasSDP = true;
 
-      socketData.socket.emit("exchangeSDPAnswer", {
+      socketData.socket?.emit("exchangeSDPAnswer", {
         {
           "to": data["from"],
           "answer": answer.toMap(),

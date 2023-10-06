@@ -3,9 +3,8 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 import "package:flutter_callkit_incoming/entities/entities.dart";
 import "package:flutter_callkit_incoming/flutter_callkit_incoming.dart";
-import "package:get_it/get_it.dart";
 import "package:jack_rtc_call/model/callkit/callkit_abstract.dart";
-import "package:jack_rtc_call/src/socket/socket_services.dart";
+import "package:jack_rtc_call/src/socket/socket_data.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
 import "package:uuid/uuid.dart";
 
@@ -91,7 +90,7 @@ class CallKitVOIP extends CallKitVOIPAbstract {
   }) async {
     SocketData? socketData;
     try {
-      socketData = GetIt.instance<SocketData>();
+      socketData = SocketData();
     } catch (_) {
       debugPrint("---------------------can't socketData----------------------");
     }
@@ -122,7 +121,7 @@ class CallKitVOIP extends CallKitVOIPAbstract {
             break;
           case Event.actionCallDecline:
             try {
-              socketData?.socket.emit("declineCall", {
+              socketData?.socket?.emit("declineCall", {
                 "to": callKitParams.extra?["callerId"],
               });
             } catch (_) {

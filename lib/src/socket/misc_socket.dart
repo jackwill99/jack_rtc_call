@@ -1,7 +1,6 @@
 import "package:flutter/foundation.dart";
-import "package:get_it/get_it.dart";
 import "package:jack_rtc_call/model/socket/misc_socket_abstract.dart";
-import "package:jack_rtc_call/src/socket/socket_services.dart";
+import "package:jack_rtc_call/src/socket/socket_data.dart";
 
 @protected
 class MiscSocketService extends MiscSocketServiceAbstract {
@@ -15,9 +14,9 @@ class MiscSocketService extends MiscSocketServiceAbstract {
 
   @override
   Future<void> initialize() async {
-    final socketData = GetIt.instance<SocketData>();
+    final socketData = SocketData();
 
-    socketData.socket.on("onlineStatusNotify", (data) async {
+    socketData.socket?.on("onlineStatusNotify", (data) async {
       debugPrint(
         "----------------------onlineStatusNotify $data----------------------",
       );

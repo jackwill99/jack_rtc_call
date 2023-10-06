@@ -1,7 +1,7 @@
-import "package:jack_rtc_call/src/web_rtc/rtc_base.dart";
+import "package:jack_rtc_call/src/web_rtc/rtc_connection.dart";
 
 abstract class SocketDataChannelAbstract {
-  final rtcConnection = RTCConnections();
+  final RTCConnections rtcConnection = RTCConnections();
 
   void initializeDataChannel();
 }

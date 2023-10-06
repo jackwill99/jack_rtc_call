@@ -7,15 +7,13 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_webrtc/flutter_webrtc.dart";
 import "package:flutter_webrtc/src/native/factory_impl.dart" as Navigator;
-import "package:get_it/get_it.dart";
+import "package:jack_rtc_call/model/web_rtc/media_services_abstract.dart";
 import "package:jack_rtc_call/src/callkit/callkit.dart";
 import "package:jack_rtc_call/src/socket/socket_media_services.dart";
-import "package:jack_rtc_call/src/socket/socket_services.dart";
-import "package:jack_rtc_call/src/web_rtc/rtc_base.dart";
 import "package:rxdart/rxdart.dart";
 
 @protected
-class RTCMediaService {
+class RTCMediaService extends RTCMediaServiceAbstract {
   factory RTCMediaService() {
     return I;
   }
@@ -24,28 +22,7 @@ class RTCMediaService {
 
   static final RTCMediaService I = RTCMediaService._();
 
-  // videoRenderer for localPeer
-  //! check it that can listen when we set `srcObject`
-  final localRTCVideoRenderer = BehaviorSubject<RTCVideoRenderer>();
-
-  // mediaStream for localPeer
-  final localStream = BehaviorSubject<MediaStream?>();
-
-  // videoRenderer for remotePeer
-  final remoteRTCVideoRenderer = BehaviorSubject<RTCVideoRenderer>();
-
-  /// data channel
-  RTCDataChannel? channel;
-
-  // tempMessage
-  final tempMessages = <RTCDataChannelMessage>[];
-
-  late Function(RTCDataChannelMessage message) onListenMessage;
-
-  late Function() onPartnerCallEnded;
-
-  final rtcConnection = RTCConnections();
-
+  @override
   void init() {
     localRTCVideoRenderer.add(RTCVideoRenderer());
     remoteRTCVideoRenderer.add(RTCVideoRenderer());
@@ -58,16 +35,7 @@ class RTCMediaService {
     isSpeakerOn.add(false);
   }
 
-  /// --------------------------Media status--------------------------
-
-  final isCallingMedia = BehaviorSubject<bool>();
-  final isAudioOn = BehaviorSubject<bool>();
-  final isVideoOn = BehaviorSubject<bool>();
-  final isFrontCamera = BehaviorSubject<bool>();
-  final isJoinedCallingMedia = BehaviorSubject<bool>.seeded(false);
-  final isPartnerVideoOpen = BehaviorSubject<bool>();
-  final isSpeakerOn = BehaviorSubject<bool>();
-
+  @override
   Stream<(bool, bool, bool, bool, bool, bool)> get mediaStatus {
     return Rx.combineLatest6<bool, bool, bool, bool, bool, bool,
         (bool, bool, bool, bool, bool, bool)>(
@@ -96,6 +64,7 @@ class RTCMediaService {
     );
   }
 
+  @override
   void setAudioStatus({required bool status}) {
     isAudioOn.add(status);
     // enable or disable audio track
@@ -104,6 +73,7 @@ class RTCMediaService {
     });
   }
 
+  @override
   void setVideoStatus({required bool status}) {
     isVideoOn.add(status);
     localStream.value!.getVideoTracks().forEach((track) {
@@ -112,6 +82,7 @@ class RTCMediaService {
     SocketMediaService.I.videoMutedSocket(status: status);
   }
 
+  @override
   Future<void> switchCamera() async {
     isFrontCamera.add(!isFrontCamera.value);
     // switch camera
@@ -120,6 +91,7 @@ class RTCMediaService {
     });
   }
 
+  @override
   Future<void> setSpeakerStatus({
     required bool status,
   }) async {
@@ -131,14 +103,13 @@ class RTCMediaService {
     await Helper.setSpeakerphoneOn(status);
   }
 
-  /// Data Channel
+  /// --------------------- Data Channel ------------------
 
+  @override
   Future<void> sendMessage({
     required dynamic message,
     bool isBinary = false,
   }) async {
-    final socketData = GetIt.instance<SocketData>();
-
     debugPrint(
       "----------send partner chat id------------${socketData.partnerCurrentChatId}----------------------",
     );
@@ -154,7 +125,7 @@ class RTCMediaService {
         );
 
         //! From Client 1
-        socketData.socket.emit("exchangeSDPOffer", {
+        socketData.socket?.emit("exchangeSDPOffer", {
           "to": socketData.myCurrentChatId,
           "offer": offer.toMap(),
         });
@@ -176,8 +147,9 @@ class RTCMediaService {
     }
   }
 
-  /// Media Call Action -----------------------
+  /// --------------------- Media Call Action ------------------
 
+  @override
   Future<void> setupMediaCall({
     bool audioOn = true,
     bool videoOn = false,
@@ -238,6 +210,7 @@ class RTCMediaService {
   }
 
   /// You should return true when not ending the media calling
+  @override
   Future<dynamic> mediaCall({
     required bool videoOn,
     required Future<dynamic> Function() toRoute,
@@ -245,7 +218,6 @@ class RTCMediaService {
     String? callerHandle,
     String? callerAvatar,
   }) async {
-    final socketData = GetIt.instance<SocketData>();
     RTCSessionDescription? offer;
 
     debugPrint(
@@ -264,7 +236,7 @@ class RTCMediaService {
       );
 
       //! From Client 1
-      socketData.socket.emit("makeCall", {
+      socketData.socket?.emit("makeCall", {
         "to": socketData.myCurrentChatId,
         "offer": offer.toMap(),
         "video": videoOn,
@@ -280,12 +252,11 @@ class RTCMediaService {
     return offer?.toMap();
   }
 
+  @override
   Future<void> acceptCall({
     required Future<dynamic> Function() toRoute,
     dynamic offer,
   }) async {
-    final socketData = GetIt.instance<SocketData>();
-
     await rtcConnection.restartConnections();
 
     // data channel
@@ -340,6 +311,7 @@ class RTCMediaService {
     }
   }
 
+  @override
   Future<void> callEnd() async {
     localStream.value?.getTracks().forEach((track) async {
       await track.stop();
@@ -364,13 +336,12 @@ class RTCMediaService {
     await remoteRTCVideoRenderer.value.initialize();
   }
 
-  /// Listening Methods
+  /// --------------------- Listening Methods ------------------
 
+  @override
   Future<RTCSessionDescription> onListenMessageService({
     required void Function(RTCDataChannelMessage message) onMessage,
   }) async {
-    final socketData = GetIt.instance<SocketData>();
-
     // listening data channel
     channel = await rtcConnection.getRTCPeerConnection.createDataChannel(
       "dataChannel-${123456}",
@@ -389,11 +360,10 @@ class RTCMediaService {
     return offer;
   }
 
+  @override
   Future<void> onDataChannelService({
     required RTCDataChannelState state,
   }) async {
-    final socketData = GetIt.instance<SocketData>();
-
     if (state == RTCDataChannelState.RTCDataChannelOpen) {
       if (tempMessages.isNotEmpty) {
         for (final i in tempMessages) {

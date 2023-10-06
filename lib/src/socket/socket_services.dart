@@ -1,14 +1,13 @@
 import "dart:async";
 
 import "package:flutter/foundation.dart";
-import "package:get_it/get_it.dart";
 import "package:jack_rtc_call/model/socket/socket_services_abstract.dart";
 import "package:jack_rtc_call/src/callkit/callkit.dart";
 import "package:jack_rtc_call/src/socket/misc_socket.dart";
+import "package:jack_rtc_call/src/socket/socket_data.dart";
 import "package:jack_rtc_call/src/socket/socket_data_channel_services.dart";
 import "package:jack_rtc_call/src/socket/socket_media_services.dart";
 import "package:jack_rtc_call/src/web_rtc/media_services.dart";
-import "package:socket_io_client/socket_io_client.dart";
 
 class SocketServices extends SocketServicesAbstract
     with _SocketServiceInitialize {
@@ -22,13 +21,11 @@ class SocketServices extends SocketServicesAbstract
 
   @override
   void connectToServer(dynamic redirectToOffer) {
-    final socketData = GetIt.instance<SocketData>();
-
     debugPrint(
       "----------------------connecting to server----------------------",
     );
-    socketData.socket.connect();
-    socketData.socket.on("connect", (data) {
+    socketData.socket?.connect();
+    socketData.socket?.on("connect", (data) {
       // isConnect = true;
       debugPrint("Connected");
       _initialize();
@@ -43,13 +40,13 @@ class SocketServices extends SocketServicesAbstract
     });
 
     //! Main For Both Client 1 and Client 2 to request the start of chat
-    socketData.socket.on(
+    socketData.socket?.on(
       "askRequestChatNotify",
       (data) {
         debugPrint(
           "----------------------askRequestChatNotify---${socketData.myCurrentChatId}-------------------",
         );
-        socketData.socket.emit(
+        socketData.socket?.emit(
           "requestChatInfo",
           {
             "to": (data as Map<String, dynamic>)["from"],
@@ -65,24 +62,20 @@ class SocketServices extends SocketServicesAbstract
 
   @override
   void initializeRequest() {
-    final socketData = GetIt.instance<SocketData>();
-
     debugPrint(
       "----------------------initialize------ ${socketData.myCurrentChatId}----------------",
     );
     //!  For Client 1
     socketData.socket
-        .emit("askRequestChat", {"to": socketData.myCurrentChatId});
+        ?.emit("askRequestChat", {"to": socketData.myCurrentChatId});
   }
 
   ///-----------------------------------------------------
   @override
   void chatClose() {
-    final socketData = GetIt.instance<SocketData>();
-
     if (socketData.partnerCurrentChatId.isNotEmpty &&
         socketData.myUserId == socketData.partnerCurrentChatId) {
-      socketData.socket.emit(
+      socketData.socket?.emit(
         "updatePartnerInfo",
         {
           "to": socketData.myCurrentChatId,
@@ -110,9 +103,9 @@ mixin _SocketServiceInitialize {
   /// 📲 Assume like that flow ...
   ///
   void _initialize() {
-    final socketData = GetIt.instance<SocketData>();
+    final socketData = SocketData();
     //! For Both Client 1 and Client 2 to share their current chatting user
-    socketData.socket.on(
+    socketData.socket?.on(
       "requestChatInfoNotify",
       (data) {
         final partner =
@@ -126,7 +119,7 @@ mixin _SocketServiceInitialize {
 
         if (socketData.partnerCurrentChatId.isNotEmpty &&
             socketData.myUserId == socketData.partnerCurrentChatId) {
-          socketData.socket.emit(
+          socketData.socket?.emit(
             "updatePartnerInfo",
             {
               "to": socketData.myCurrentChatId,
@@ -141,7 +134,7 @@ mixin _SocketServiceInitialize {
     );
 
     //! For Both Client 1 and Client 2 to update their current chatting user
-    socketData.socket.on("updatePartnerInfoNotify", (data) async {
+    socketData.socket?.on("updatePartnerInfoNotify", (data) async {
       final partner =
           (data as Map<String, dynamic>)["partner"] as Map<String, dynamic>;
       debugPrint(
@@ -161,53 +154,4 @@ mixin _SocketServiceInitialize {
 
     unawaited(MiscSocketService.I.initialize());
   }
-}
-
-class SocketData {
-  // RxBool isConnect = false.obs;
-
-  late String socketUrl;
-
-  late String myUserId;
-
-  /// default is `empty string`
-  String myCurrentChatId = "";
-
-  bool hasSDP = false;
-
-  //!Client 1 is Subject Start -> Login Doctor
-
-  String partnerCurrentChatId = "";
-  bool partnerHasSDP = false;
-
-  Socket? _socket;
-
-  Socket get socket => _socket!;
-
-  set socket(Socket? value) {
-    _socket = value;
-    debugPrint(
-      "----------------------setting socket is success----------------------",
-    );
-  }
-
-  void settingSocket() {
-    final socketData = GetIt.instance<SocketData>();
-
-    final socket = io(
-      socketData.socketUrl,
-      <String, dynamic>{
-        "transports": ["websocket"],
-        "query": {"userId": socketData.myUserId},
-        "forceNew": true,
-        // 'path': '/sockets.io',
-      },
-    );
-    socketData.socket = socket;
-  }
-
-  dynamic tempOffer;
-
-  /// my current partner id in media calling
-  String myCurrentCallPartnerId = "";
 }
