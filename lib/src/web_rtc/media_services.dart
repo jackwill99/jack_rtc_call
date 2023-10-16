@@ -133,7 +133,11 @@ class RTCMediaService extends RTCMediaServiceAbstract {
       }
       if (rtcConnection.getRTCPeerConnection.connectionState !=
           RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
-        tempMessages.add(RTCDataChannelMessage(message));
+        tempMessages.add(
+          isBinary
+              ? RTCDataChannelMessage.fromBinary(message)
+              : RTCDataChannelMessage(message),
+        );
       }
       await channel!.send(
         isBinary
