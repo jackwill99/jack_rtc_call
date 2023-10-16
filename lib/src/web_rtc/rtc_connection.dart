@@ -39,23 +39,19 @@ class RTCConnections extends RTCConnectionsAbstract {
     return _rtcPeerConnection!;
   }
 
+  List? iceServers;
+
   @override
   Future<RTCPeerConnection> setupPeerConnection() async {
     // create peer connection
     _rtcPeerConnection = await createPeerConnection(
       {
-        // TODO(jack-will): take params for the server config
-        "iceServers": [
-          {
-            "urls": "stun:stun.telemed.sabahna.com:8443",
-            //   'stun:stun1.l.google.com:19302',
-          },
-          {
-            "urls": "turn:turn.telemed.sabahna.com:8443",
-            "credential": "sabahna",
-            "username": "sabahna",
-          }
-        ],
+        "iceServers": iceServers ??
+            [
+              {
+                "stun:stun1.l.google.com:19302",
+              },
+            ],
       },
     );
     _rtcPeerConnection?.onIceCandidate =

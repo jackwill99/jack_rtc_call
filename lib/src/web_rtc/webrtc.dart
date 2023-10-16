@@ -18,6 +18,20 @@ import "package:jack_rtc_call/src/web_rtc/rtc_connection.dart";
 import "package:rxdart/rxdart.dart";
 
 class JackRTCService extends WebRTCAbstract {
+  /// [iceServers] should be like this
+  /// ```dart
+  /// iceServers: [
+  ///           {
+  ///             "urls": "stun:stun.jackwill.com:8443",
+  ///           },
+  ///           {
+  ///             "urls": "turn:turn.jackwill.com:8443",
+  ///             "credential": "jackwill",
+  ///             "username": "jackwill",
+  ///           }
+  ///         ],
+  ///
+  /// ```
   ///
   /// `toCallingPage` is route for calling page
   ///
@@ -32,6 +46,7 @@ class JackRTCService extends WebRTCAbstract {
     required String myId,
     required Future<dynamic> Function() toCallingPage,
     required dynamic redirectToOffer,
+    List? iceServers,
   }) {
     socketData
       ..myUserId = myId
@@ -43,6 +58,8 @@ class JackRTCService extends WebRTCAbstract {
     toRoute = toCallingPage;
     unawaited(CallKitVOIP.I.listenerEvent());
     CallKitVOIP.I.toRoute = toCallingPage;
+
+    RTCConnections.I.iceServers = iceServers;
   }
 
   final _socketServices = SocketServices();
